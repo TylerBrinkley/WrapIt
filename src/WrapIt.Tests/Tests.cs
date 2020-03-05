@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -88,6 +89,7 @@ namespace Company
         IList<IBase> Array { get; set; }
         decimal Bird { set; }
         IOther Cat { get; set; }
+        ICollection Collection { get; set; }
         IOther this[int index] { get; }
         List<string> Names { get; set; }
     }
@@ -120,6 +122,10 @@ namespace Company
 
         IOther IDerived.Cat { get => Cat; set => Cat = (OtherWrapper)value; }
 
+        public CollectionWrapper Collection { get => Object.Collection; set => Object.Collection = value; }
+
+        ICollection IDerived.Collection { get => Collection; set => Collection = (CollectionWrapper)value; }
+
         public OtherWrapper this[int index] => Object[index];
 
         IOther IDerived.this[int index] => this[index];
@@ -132,6 +138,60 @@ namespace Company
         }
     }
 }", derivedClass);
+
+            stream = _files[$"Company.ICollection"];
+            stream.Position = 0;
+            var collectionInterface = new StreamReader(stream).ReadToEnd();
+            Assert.AreEqual(@"using System.Collections;
+using System.Collections.Generic;
+
+namespace Company
+{
+    public partial interface ICollection : IEnumerable, IEnumerable<IDerived>
+    {
+        IDerived this[int index] { get; }
+    }
+}", collectionInterface);
+
+            stream = _files[$"Company.CollectionWrapper"];
+            stream.Position = 0;
+            var collectionClass = new StreamReader(stream).ReadToEnd();
+            Assert.AreEqual(@"using System;
+using System.Collections;
+using System.Collections.Generic;
+
+namespace Company
+{
+    public partial class CollectionWrapper : ICollection
+    {
+        public static implicit operator CollectionWrapper(Company.Collection @object) => @object != null ? new CollectionWrapper(@object) : null;
+
+        public static implicit operator Company.Collection(CollectionWrapper @object) => @object?.Object;
+
+        public Company.Collection Object { get; }
+
+        public DerivedWrapper this[int index] => Object[index];
+
+        IDerived ICollection.this[int index] => this[index];
+
+        public CollectionWrapper(Company.Collection @object)
+        {
+            Object = @object ?? throw new ArgumentNullException(nameof(@object));
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<IDerived>)this).GetEnumerator();
+
+        public IEnumerator<DerivedWrapper> GetEnumerator()
+        {
+            foreach (var item in Object)
+            {
+                yield return (Company.Derived)item;
+            }
+        }
+
+        IEnumerator<IDerived> IEnumerable<IDerived>.GetEnumerator() => GetEnumerator();
+    }
+}", collectionClass);
 
             stream = _files[$"OtherNamespace.IOther"];
             stream.Position = 0;
@@ -295,6 +355,8 @@ namespace Company
 
         public Other Cat { get; set; }
 
+        public Collection Collection { get; set; }
+
         public Other this[int index] => Cat;
 
         public List<string> Names { get; set; }
@@ -302,6 +364,13 @@ namespace Company
         public override void DoStuff(Other other)
         {
         }
+    }
+
+    public class Collection : IEnumerable
+    {
+        public Derived this[int index] => null;
+
+        public IEnumerator GetEnumerator() => null;
     }
 }
 

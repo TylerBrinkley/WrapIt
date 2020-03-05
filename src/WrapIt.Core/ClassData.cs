@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -286,6 +287,8 @@ namespace WrapIt
                     await writer.WriteLineAsync().ConfigureAwait(false);
                 }
 
+                // TODO: Add explicit interface implementation support for events
+
                 await writer.WriteLineAsync($"        public {ClassName}({typeFullName} {ObjectParamName})").ConfigureAwait(false);
                 if (BaseType != null)
                 {
@@ -303,24 +306,68 @@ namespace WrapIt
                 foreach (var method in Methods)
                 {
                     await writer.WriteLineAsync().ConfigureAwait(false);
-                    await writer.WriteLineAsync($"        public {(method.OverrideObject ? "override " : string.Empty)}{method.ReturnType.ClassName} {method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetAsClassParameter()))}) => {ObjectName}.{method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetCodeToConvertToActualType()))});").ConfigureAwait(false);
+                    var isGenericGetEnumerator = method.Name == "GetEnumerator" && method.ReturnType.Type != typeof(IEnumerator);
+                    if (isGenericGetEnumerator)
+                    {
+                        await writer.WriteLineAsync($"        public {method.ReturnType.ClassName} GetEnumerator()").ConfigureAwait(false);
+                        await writer.WriteLineAsync("        {").ConfigureAwait(false);
+                        await writer.WriteLineAsync($"            foreach (var item in {ObjectName})").ConfigureAwait(false);
+                        await writer.WriteLineAsync("            {").ConfigureAwait(false);
+                        await writer.WriteLineAsync("                yield return item;").ConfigureAwait(false);
+                        await writer.WriteLineAsync("            }").ConfigureAwait(false);
+                        await writer.WriteLineAsync("        }").ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        await writer.WriteLineAsync($"        public {(method.OverrideObject ? "override " : string.Empty)}{method.ReturnType.ClassName} {method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetAsClassParameter()))}) => {ObjectName}.{method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetCodeToConvertToActualType()))});").ConfigureAwait(false);
+                    }
                     if (method.ReturnType.ClassName != method.ReturnType.InterfaceName || method.Parameters.Any(p => p.Type.ClassName != p.Type.InterfaceName))
                     {
                         await writer.WriteLineAsync().ConfigureAwait(false);
-                        await writer.WriteLineAsync($"        {method.ReturnType.InterfaceName} {method.DeclaringInterfaceType?.InterfaceName ?? InterfaceName}.{method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetAsInterfaceParameter()))}) => {method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetCodeToConvertToClassType()))});").ConfigureAwait(false);
+                        if (isGenericGetEnumerator)
+                        {
+                            await writer.WriteLineAsync($"        {method.ReturnType.InterfaceName} {method.DeclaringInterfaceType?.InterfaceName ?? InterfaceName}.GetEnumerator() => GetEnumerator();").ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            await writer.WriteLineAsync($"        {method.ReturnType.InterfaceName} {method.DeclaringInterfaceType?.InterfaceName ?? InterfaceName}.{method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetAsInterfaceParameter()))}) => {method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetCodeToConvertToClassType()))});").ConfigureAwait(false);
+                        }
                     }
                 }
 
+                var genericIEnumerable = Interfaces.FirstOrDefault(i => i.Type.IsGenericType && i.Type.GetGenericTypeDefinition() == typeof(IEnumerable<>));
                 foreach (var @interface in Interfaces)
                 {
-                    if (BaseType?.HasInterface(@interface) != true)
+                    if (BaseType?.HasInterface(@interface) != true || (genericIEnumerable != null && @interface.Type == typeof(IEnumerable)))
                     {
                         foreach (var method in @interface.Methods)
                         {
                             if (!Methods.Any(m => m.Equals(method)))
                             {
                                 await writer.WriteLineAsync().ConfigureAwait(false);
-                                await writer.WriteLineAsync($"        {method.ReturnType.InterfaceName} {@interface.InterfaceName}.{method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetAsInterfaceParameter()))}) => (({@interface.InterfaceName}){ObjectName}).{method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetCodeToConvertToClassType()))});").ConfigureAwait(false);
+                                if (genericIEnumerable != null && method.Name == "GetEnumerator")
+                                {
+                                    if (method.ReturnType.Type.IsGenericType)
+                                    {
+                                        await writer.WriteLineAsync($"        public {method.ReturnType.ClassName} GetEnumerator()").ConfigureAwait(false);
+                                        await writer.WriteLineAsync("        {").ConfigureAwait(false);
+                                        await writer.WriteLineAsync($"            foreach (var item in {ObjectName})").ConfigureAwait(false);
+                                        await writer.WriteLineAsync("            {").ConfigureAwait(false);
+                                        await writer.WriteLineAsync($"                yield return ({((GenericTypeName)genericIEnumerable.ClassName).GenericTypeArguments[0]})item;").ConfigureAwait(false);
+                                        await writer.WriteLineAsync("            }").ConfigureAwait(false);
+                                        await writer.WriteLineAsync("        }").ConfigureAwait(false);
+                                        await writer.WriteLineAsync().ConfigureAwait(false);
+                                        await writer.WriteLineAsync($"        {method.ReturnType.InterfaceName} {@interface.InterfaceName}.GetEnumerator() => GetEnumerator();").ConfigureAwait(false);
+                                    }
+                                    else
+                                    {
+                                        await writer.WriteLineAsync($"        {method.ReturnType.InterfaceName} {@interface.InterfaceName}.GetEnumerator() => (({genericIEnumerable.InterfaceName})this).GetEnumerator();").ConfigureAwait(false);
+                                    }
+                                }
+                                else
+                                {
+                                    await writer.WriteLineAsync($"        {method.ReturnType.InterfaceName} {@interface.InterfaceName}.{method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetAsInterfaceParameter()))}) => (({@interface.InterfaceName}){ObjectName}).{method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetCodeToConvertToClassType()))});").ConfigureAwait(false);
+                                }
                             }
                         }
                     }
