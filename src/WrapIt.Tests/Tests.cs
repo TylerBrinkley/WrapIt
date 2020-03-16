@@ -142,7 +142,8 @@ namespace Company
             stream = _files[$"Company.ICollection"];
             stream.Position = 0;
             var collectionInterface = new StreamReader(stream).ReadToEnd();
-            Assert.AreEqual(@"using System.Collections;
+            Assert.AreEqual(@"using System;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace Company
@@ -150,6 +151,9 @@ namespace Company
     public partial interface ICollection : IEnumerable, IEnumerable<IDerived>
     {
         IDerived this[int index] { get; }
+
+        IDerived Add(string name);
+        IDerived Add(string name, DateTime value);
     }
 }", collectionInterface);
 
@@ -178,6 +182,14 @@ namespace Company
         {
             Object = @object ?? throw new ArgumentNullException(nameof(@object));
         }
+
+        public DerivedWrapper Add(string name) => Object.Add(name);
+
+        IDerived ICollection.Add(string name) => Add(name);
+
+        public DerivedWrapper Add(string name, DateTime value) => Object.Add(name, value);
+
+        IDerived ICollection.Add(string name, DateTime value) => Add(name, value);
 
         IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<IDerived>)this).GetEnumerator();
 
@@ -369,6 +381,10 @@ namespace Company
     public class Collection : IEnumerable
     {
         public Derived this[int index] => null;
+
+        public Derived Add(string name) => null;
+
+        public Derived Add(string name, DateTime value) => null;
 
         public IEnumerator GetEnumerator() => null;
     }

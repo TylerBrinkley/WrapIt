@@ -130,11 +130,20 @@ namespace WrapIt
 
             if (!Type.IsInterface && isIEnumerable && !isGenericIEnumerable)
             {
-                var addMethod = Methods.SingleOrDefault(m => m.Name == "Add" && m.Parameters.Count == 1);
+                var addMethods = Methods.Where(m => m.Name == "Add").ToList();
+                var addMethod = addMethods.SingleOrDefault(m => m.Parameters.Count == 1 && (m.ReturnType.Type == typeof(void) || m.ReturnType.Type == typeof(bool)));
                 TypeData? genericArg = null;
                 if (addMethod != null)
                 {
                     genericArg = addMethod.Parameters[0].Type;
+                }
+                else if (addMethods.Count > 0)
+                {
+                    var returnType = addMethods[0].ReturnType;
+                    if (addMethods.All(m => m.ReturnType.Equals(returnType)))
+                    {
+                        genericArg = returnType;
+                    }
                 }
                 var indexers = Properties.Where(p => p.Name == "Item").ToList();
                 if (genericArg != null || indexers.Count > 0)

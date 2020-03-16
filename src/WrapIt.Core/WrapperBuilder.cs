@@ -81,6 +81,7 @@ namespace WrapIt
                     {
                         var enumFullName = EnumFullNameFormat!(type.Namespace, type.Name);
                         typeData = new EnumData(type, GetTypeName(enumFullName));
+                        typeDatas.Add(typeData);
                     }
                     else if (type.IsArray && type.GetArrayRank() == 1)
                     {
@@ -89,11 +90,13 @@ namespace WrapIt
                         var className = new GenericTypeName("WrapIt.Collections", "ArrayWrapper", new[] { new TypeName(elementType.Namespace, elementType.Name, true), elementTypeData.ClassName, elementTypeData.InterfaceName });
                         var interfaceName = new GenericTypeName("System.Collections.Generic", "IList", new[] { elementTypeData.InterfaceName });
                         typeData = new ArrayData(type, className, interfaceName, elementTypeData, this, typeDatas);
+                        typeDatas.Add(typeData);
                     }
                     else if (baseType == typeof(MulticastDelegate))
                     {
                         var delegateFullName = DelegateFullNameFormat?.Invoke(typeNamespace, typeName) ?? $"{typeNamespace}.{typeName}Wrapper";
                         typeData = new DelegateData(type, GetOtherTypeData(type, typeDatas).ClassName, GetTypeName(delegateFullName), TypeBuildStatus.NotYetBuilt, this, typeDatas);
+                        typeDatas.Add(typeData);
                     }
                     else
                     {
@@ -105,20 +108,33 @@ namespace WrapIt
                         var classFullName = ClassFullNameFormat?.Invoke(typeNamespace, typeName) ?? $"{typeNamespace}.{typeName}Wrapper";
                         var interfaceFullName = InterfaceFullNameFormat?.Invoke(typeNamespace, typeName) ?? $"{typeNamespace}.I{typeName}";
                         typeData = new ClassData(type, GetTypeName(classFullName), GetTypeName(interfaceFullName), TypeBuildStatus.NotYetBuilt, baseTypeData);
+                        typeDatas.Add(typeData);
+                        if (!type.IsSealed)
+                        {
+                            foreach (var assembly in _assembliesWithTypesToWrap)
+                            {
+                                foreach (var t in assembly.GetExportedTypes())
+                                {
+                                    if (type.IsAssignableFrom(t) && t != type)
+                                    {
+                                        typeData.DependentTypes.Add(GetTypeData(t, typeDatas));
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
                 else
                 {
                     typeData = GetOtherTypeData(type, typeDatas);
+                    typeDatas.Add(typeData);
                 }
-                typeDatas.Add(typeData);
             }
             return typeData;
         }
 
         private TypeData GetOtherTypeData(Type type, HashSet<TypeData> typeDatas)
         {
-            TypeData typeData;
             TypeName className;
             TypeName? interfaceName = null;
             if (type.IsValueType && type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
@@ -187,17 +203,16 @@ namespace WrapIt
             }
             if (type.BaseType == typeof(MulticastDelegate))
             {
-                typeData = new DelegateData(type, className, interfaceName ?? className, TypeBuildStatus.NotBuilding, this, typeDatas);
+                return new DelegateData(type, className, interfaceName ?? className, TypeBuildStatus.NotBuilding, this, typeDatas);
             }
             else if (type.IsInterface)
             {
-                typeData = new InterfaceData(type, className, interfaceName ?? className, TypeBuildStatus.NotBuilding);
+                return new InterfaceData(type, className, interfaceName ?? className, TypeBuildStatus.NotBuilding);
             }
             else
             {
-                typeData = new TypeData(type, className, interfaceName ?? className, TypeBuildStatus.NotBuilding);
+                return new TypeData(type, className, interfaceName ?? className, TypeBuildStatus.NotBuilding);
             }
-            return typeData;
         }
 
         private TypeName GetTypeName(string fullName)
