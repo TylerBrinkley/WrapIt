@@ -47,6 +47,8 @@ namespace WrapIt
 
         public Func<Type, bool>? TypeResolver { get; set; }
 
+        public decimal MinCSharpVersion { get; set; } = 7M;
+
         /// <summary>
         /// Defaults to <c>true</c>.
         /// </summary>
