@@ -61,6 +61,10 @@ namespace WrapIt
                 throw new ArgumentNullException(nameof(writerProvider));
             }
 
+            foreach (var rootType in _rootTypes)
+            {
+                AssembliesWithTypesToWrap.Add(rootType.Assembly);
+            }
             var typeDatas = new HashSet<TypeData>(TypeData.DefaultTypes);
             foreach (var rootType in _rootTypes)
             {
@@ -106,6 +110,10 @@ namespace WrapIt
                         if (baseType != null && _assembliesWithTypesToWrap.Contains(baseType.Assembly) && TypeResolver?.Invoke(baseType) != false)
                         {
                             baseTypeData = (ClassData)GetTypeData(baseType, typeDatas);
+                            if (typeDatas.TryGetValue(new TypeData(type), out typeData))
+                            {
+                                return typeData;
+                            }
                         }
                         var classFullName = ClassFullNameFormat?.Invoke(typeNamespace, typeName) ?? $"{typeNamespace}.{typeName}Wrapper";
                         var interfaceFullName = InterfaceFullNameFormat?.Invoke(typeNamespace, typeName) ?? $"{typeNamespace}.I{typeName}";

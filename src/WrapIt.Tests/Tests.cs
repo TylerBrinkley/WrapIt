@@ -25,7 +25,6 @@ namespace WrapIt.Tests
         {
             var builder = new WrapperBuilder();
             builder.RootTypes.Add(typeof(Derived));
-            builder.AssembliesWithTypesToWrap.Add(typeof(Derived).Assembly);
             await builder.BuildAsync(GetWriter);
 
             var stream = _files[$"Company.IBase"];
@@ -104,7 +103,7 @@ using WrapIt.Collections;
 
 namespace Company
 {
-    public partial class DerivedWrapper : BaseWrapper, IDerived
+    public partial sealed class DerivedWrapper : BaseWrapper, IDerived
     {
         public static implicit operator DerivedWrapper(Company.Derived @object) => @object != null ? new DerivedWrapper(@object) : null;
 
@@ -357,7 +356,7 @@ namespace Company
         }
     }
 
-    public class Derived : Base
+    public sealed class Derived : Base
     {
         private decimal _bird;
 

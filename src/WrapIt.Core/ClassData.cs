@@ -192,7 +192,7 @@ namespace WrapIt
 
                 await writer.WriteLineAsync($"namespace {classNamespace}").ConfigureAwait(false);
                 await writer.WriteLineAsync("{").ConfigureAwait(false);
-                await writer.WriteLineAsync($"    public partial class {ClassName} : {(BaseType is null ? string.Empty : $"{BaseType.ClassName}, ")}{InterfaceName}").ConfigureAwait(false);
+                await writer.WriteLineAsync($"    public partial {(Type.IsSealed ? "sealed " : string.Empty)}class {ClassName} : {(BaseType is null ? string.Empty : $"{BaseType.ClassName}, ")}{InterfaceName}").ConfigureAwait(false);
                 await writer.WriteLineAsync("    {").ConfigureAwait(false);
 
                 var typeFullName = Type.FullName;
