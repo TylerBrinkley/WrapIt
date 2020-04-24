@@ -58,7 +58,7 @@ namespace Company
 
         public static implicit operator Company.Base(BaseWrapper @object) => @object?.Object;
 
-        public Company.Base Object { get; }
+        public Company.Base Object { get; private set; }
 
         public string Dog { get => Object.Dog; set => Object.Dog = value; }
 
@@ -171,7 +171,7 @@ namespace Company
 
         public static implicit operator Company.Collection(CollectionWrapper @object) => @object?.Object;
 
-        public Company.Collection Object { get; }
+        public Company.Collection Object { get; private set; }
 
         public DerivedWrapper this[int index] => Object[index];
 
@@ -258,7 +258,7 @@ namespace OtherNamespace
 
         public static implicit operator OtherNamespace.FieldChangeEventArgs(FieldChangeEventArgsWrapper @object) => @object?.Object;
 
-        public OtherNamespace.FieldChangeEventArgs Object { get; }
+        public OtherNamespace.FieldChangeEventArgs Object { get; private set; }
 
         public int BorrowerPair => Object.BorrowerPair;
 
@@ -289,7 +289,7 @@ namespace OtherNamespace
 
         public static implicit operator OtherNamespace.Other(OtherWrapper @object) => @object?.Object;
 
-        public OtherNamespace.Other Object { get; }
+        public OtherNamespace.Other Object { get; private set; }
 
         public int? Count { get => Object.Count; set => Object.Count = value; }
 

@@ -207,7 +207,7 @@ namespace WrapIt
                 }
                 else
                 {
-                    await writer.WriteLineAsync($"        public {typeFullName} {ObjectName} {{ get; }}").ConfigureAwait(false);
+                    await writer.WriteLineAsync($"        public {typeFullName} {ObjectName} {{ get; private set; }}").ConfigureAwait(false);
                 }
                 await writer.WriteLineAsync().ConfigureAwait(false);
 
