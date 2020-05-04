@@ -332,6 +332,10 @@ namespace WrapIt
                         await writer.WriteLineAsync("            }").ConfigureAwait(false);
                         await writer.WriteLineAsync("        }").ConfigureAwait(false);
                     }
+                    else if (method.Name == "Equals" && method.OverrideObject)
+                    {
+                        await writer.WriteLineAsync($"        public override bool Equals({method.Parameters[0].GetAsClassParameter()}) => {ObjectName}.Equals(obj is {ClassName} {(builder.MinCSharpVersion >= 7M ? $"o ? o" : $"? (({ClassName})obj)")}.{ObjectName} : obj);").ConfigureAwait(false);
+                    }
                     else
                     {
                         await writer.WriteLineAsync($"        public {(method.OverrideObject ? "override " : string.Empty)}{method.ReturnType.ClassName} {method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetAsClassParameter()))}) => {ObjectName}.{method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetCodeToConvertToActualType()))});").ConfigureAwait(false);
@@ -351,6 +355,7 @@ namespace WrapIt
                 }
 
                 var genericIEnumerable = Interfaces.FirstOrDefault(i => i.Type.IsGenericType && i.Type.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+                var genericIEquatable = Interfaces.FirstOrDefault(i => i.Type.IsGenericType && i.Type.GetGenericTypeDefinition() == typeof(IEquatable<>));
                 foreach (var @interface in Interfaces)
                 {
                     if (BaseType?.HasInterface(@interface) != true || (genericIEnumerable != null && @interface.Type == typeof(IEnumerable)))
@@ -378,6 +383,12 @@ namespace WrapIt
                                     {
                                         await writer.WriteLineAsync($"        {method.ReturnType.InterfaceName} {@interface.InterfaceName}.GetEnumerator() => (({genericIEnumerable.InterfaceName})this).GetEnumerator();").ConfigureAwait(false);
                                     }
+                                }
+                                else if (genericIEquatable == @interface)
+                                {
+                                    await writer.WriteLineAsync($"        public bool Equals({method.Parameters[0].GetAsClassParameter()}) => {ObjectName}.Equals({method.Parameters[0].Name}.{ObjectName});").ConfigureAwait(false);
+                                    await writer.WriteLineAsync().ConfigureAwait(false);
+                                    await writer.WriteLineAsync($"        bool {@interface.InterfaceName}.Equals({method.Parameters[0].GetAsInterfaceParameter()}) => Equals({method.Parameters[0].GetCodeToConvertToClassType()});").ConfigureAwait(false);
                                 }
                                 else
                                 {

@@ -42,6 +42,7 @@ namespace WrapIt
 
             var isIEnumerable = false;
             var isGenericIEnumerable = false;
+            var isGenericIEquatable = false;
             foreach (var @interface in Type.GetInterfaces())
             {
                 if (@interface.IsPublic && !builder.AssembliesWithTypesToWrap.Contains(@interface.Assembly) && builder.InterfaceResolver?.Invoke(Type, @interface) != false)
@@ -50,9 +51,17 @@ namespace WrapIt
                     {
                         isIEnumerable = true;
                     }
-                    if (!isGenericIEnumerable && @interface.IsGenericType && @interface.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+                    if (@interface.IsGenericType)
                     {
-                        isGenericIEnumerable = true;
+                        var genericTypeDefinition = @interface.GetGenericTypeDefinition();
+                        if (!isGenericIEnumerable && genericTypeDefinition == typeof(IEnumerable<>))
+                        {
+                            isGenericIEnumerable = true;
+                        }
+                        else if (!isGenericIEquatable && genericTypeDefinition == typeof(IEquatable<>))
+                        {
+                            isGenericIEquatable = true;
+                        }
                     }
                     var interfaceTypeData = (InterfaceData)builder.GetTypeData(@interface, typeDatas);
                     interfaceTypeData.Initialize(builder, typeDatas, bindingFlags);
@@ -95,15 +104,21 @@ namespace WrapIt
 
             Properties = Properties.Distinct().OrderBy(p => p.Name).ToList();
 
+            var isEquatable = false;
             var methodInfos = Type.GetMethods(bindingFlags);
             foreach (var method in methodInfos)
             {
                 if (method.DeclaringType != typeof(object) && !method.IsSpecialName && IncludeMethod(builder, method, typeDatas, out var overrideObject) && builder.MethodResolver?.Invoke(Type, method) != false)
                 {
                     var returnType = method.ReturnType;
+                    
                     var returnTypeData = builder.GetTypeData(returnType, typeDatas);
                     DependentTypes.UnionWith(returnTypeData.GetPublicTypes());
                     var parameterInfos = method.GetParameters();
+                    if (!isEquatable && method.Name == "Equals" && returnType == typeof(bool) && parameterInfos.Length == 1 && parameterInfos[0].ParameterType == typeof(object))
+                    {
+                        isEquatable = true;
+                    }
                     var parameters = new List<ParameterData>();
                     if (parameterInfos?.Length > 0)
                     {
@@ -128,46 +143,56 @@ namespace WrapIt
                 }
             }
 
-            if (!Type.IsInterface && isIEnumerable && !isGenericIEnumerable)
+            if (!Type.IsInterface)
             {
-                var addMethods = Methods.Where(m => m.Name == "Add").ToList();
-                var addMethod = addMethods.SingleOrDefault(m => m.Parameters.Count == 1 && (m.ReturnType.Type == typeof(void) || m.ReturnType.Type == typeof(bool) || m.ReturnType.Type == typeof(int)));
-                TypeData? genericArg = null;
-                if (addMethod != null)
+                if (isEquatable && !isGenericIEquatable)
                 {
-                    genericArg = addMethod.Parameters[0].Type;
+                    var interfaceTypeData = (InterfaceData)builder.GetTypeData(typeof(IEquatable<>).MakeGenericType(Type), typeDatas);
+                    interfaceTypeData.Initialize(builder, typeDatas, bindingFlags);
+                    Interfaces.Add(interfaceTypeData);
                 }
-                else if (addMethods.Count > 0)
+                if (isIEnumerable && !isGenericIEnumerable)
                 {
-                    var returnType = addMethods[0].ReturnType;
-                    if (addMethods.All(m => m.ReturnType.Equals(returnType)))
+                    var addMethods = Methods.Where(m => m.Name == "Add").ToList();
+                    var specificAddMethods = addMethods.Where(m => m.Parameters.Count == 1 && (m.ReturnType.Type == typeof(void) || m.ReturnType.Type == typeof(bool) || m.ReturnType.Type == typeof(int))).ToList();
+                    var addMethod = specificAddMethods.Count == 1 ? specificAddMethods[0] : null;
+                    TypeData? genericArg = null;
+                    if (addMethod != null)
                     {
-                        genericArg = returnType;
+                        genericArg = addMethod.Parameters[0].Type;
                     }
-                }
-                var indexers = Properties.Where(p => p.Name == "Item").ToList();
-                if (genericArg != null || indexers.Count > 0)
-                {
-                    var indexerType = indexers[0].Type;
-                    if (genericArg == null || !indexers.All(i => i.Type.Equals(genericArg)))
+                    else if (addMethods.Count > 0)
                     {
-                        genericArg = indexerType;
-                        if (!indexers.All(i => i.Type.Equals(genericArg)) || (addMethods.Count > 0 && !addMethods.Any(m => m.Parameters.Count == 1 && m.Parameters[0].Type.Equals(genericArg))))
+                        var returnType = addMethods[0].ReturnType;
+                        if (addMethods.All(m => m.ReturnType.Equals(returnType)))
                         {
-                            genericArg = null;
+                            genericArg = returnType;
                         }
                     }
-                    if (genericArg != null)
+                    var indexers = Properties.Where(p => p.Name == "Item").ToList();
+                    if (genericArg != null || indexers.Count > 0)
                     {
-                        var interfaceTypeData = (InterfaceData)builder.GetTypeData(typeof(IEnumerable<>).MakeGenericType(genericArg.Type), typeDatas);
-                        interfaceTypeData.Initialize(builder, typeDatas, bindingFlags);
-                        Interfaces.Add(interfaceTypeData);
-                        for (var i = 0; i < Methods.Count; ++i)
+                        var indexerType = indexers[0].Type;
+                        if (genericArg == null || !indexers.All(i => i.Type.Equals(genericArg)))
                         {
-                            if (Methods[i].Name == "GetEnumerator")
+                            genericArg = indexerType;
+                            if (!indexers.All(i => i.Type.Equals(genericArg)) || (addMethods.Count > 0 && !addMethods.Any(m => m.Parameters.Count == 1 && m.Parameters[0].Type.Equals(genericArg))))
                             {
-                                Methods.RemoveAt(i);
-                                break;
+                                genericArg = null;
+                            }
+                        }
+                        if (genericArg != null)
+                        {
+                            var interfaceTypeData = (InterfaceData)builder.GetTypeData(typeof(IEnumerable<>).MakeGenericType(genericArg.Type), typeDatas);
+                            interfaceTypeData.Initialize(builder, typeDatas, bindingFlags);
+                            Interfaces.Add(interfaceTypeData);
+                            for (var i = 0; i < Methods.Count; ++i)
+                            {
+                                if (Methods[i].Name == "GetEnumerator")
+                                {
+                                    Methods.RemoveAt(i);
+                                    break;
+                                }
                             }
                         }
                     }

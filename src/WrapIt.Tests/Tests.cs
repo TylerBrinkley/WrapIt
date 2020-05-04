@@ -35,7 +35,7 @@ using OtherNamespace;
 
 namespace Company
 {
-    public partial interface IBase
+    public partial interface IBase : IEquatable<IBase>
     {
         string Dog { get; set; }
         DateTime Raccoon { get; }
@@ -72,6 +72,12 @@ namespace Company
         public void DoStuff(OtherWrapper other) => Object.DoStuff(other);
 
         void IBase.DoStuff(IOther other) => DoStuff((OtherWrapper)other);
+
+        public override bool Equals(object obj) => Object.Equals(obj is BaseWrapper o ? o.Object : obj);
+
+        public bool Equals(BaseWrapper other) => Object.Equals(other.Object);
+
+        bool IEquatable<IBase>.Equals(IBase other) => Equals((BaseWrapper)other);
     }
 }", baseClass);
 
@@ -354,6 +360,8 @@ namespace Company
         public virtual void DoStuff(Other other)
         {
         }
+
+        public override bool Equals(object obj) => base.Equals(obj);
     }
 
     public sealed class Derived : Base
