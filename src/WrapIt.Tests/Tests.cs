@@ -35,7 +35,7 @@ using OtherNamespace;
 
 namespace Company
 {
-    public partial interface IBase : IEquatable<IBase>
+    public partial interface IBase
     {
         string Dog { get; set; }
         DateTime Raccoon { get; }
@@ -74,22 +74,19 @@ namespace Company
         void IBase.DoStuff(IOther other) => DoStuff((OtherWrapper)other);
 
         public override bool Equals(object obj) => Object.Equals(obj is BaseWrapper o ? o.Object : obj);
-
-        public bool Equals(BaseWrapper other) => Object.Equals(other.Object);
-
-        bool IEquatable<IBase>.Equals(IBase other) => Equals((BaseWrapper)other);
     }
 }", baseClass);
 
             stream = _files[$"Company.IDerived"];
             stream.Position = 0;
             var derivedInterface = new StreamReader(stream).ReadToEnd();
-            Assert.AreEqual(@"using System.Collections.Generic;
+            Assert.AreEqual(@"using System;
+using System.Collections.Generic;
 using OtherNamespace;
 
 namespace Company
 {
-    public partial interface IDerived : IBase
+    public partial interface IDerived : IBase, IComparable
     {
         IList<IBase> Array { get; set; }
         decimal Bird { set; }
@@ -103,7 +100,8 @@ namespace Company
             stream = _files[$"Company.DerivedWrapper"];
             stream.Position = 0;
             var derivedClass = new StreamReader(stream).ReadToEnd();
-            Assert.AreEqual(@"using System.Collections.Generic;
+            Assert.AreEqual(@"using System;
+using System.Collections.Generic;
 using OtherNamespace;
 using WrapIt.Collections;
 
@@ -141,6 +139,8 @@ namespace Company
             : base(@object)
         {
         }
+
+        int IComparable.CompareTo(object obj) => ((IComparable)Object).CompareTo(obj is DerivedWrapper o ? o.Object : obj);
     }
 }", derivedClass);
 
@@ -366,7 +366,7 @@ namespace Company
         public override bool Equals(object obj) => base.Equals(obj);
     }
 
-    public sealed class Derived : Base
+    public sealed class Derived : Base, IComparable
     {
         private decimal _bird;
 
@@ -385,6 +385,8 @@ namespace Company
         public override void DoStuff(Other other)
         {
         }
+
+        int IComparable.CompareTo(object obj) => 1;
     }
 
     public class Collection : IEnumerable

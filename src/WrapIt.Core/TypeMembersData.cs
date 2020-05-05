@@ -42,7 +42,6 @@ namespace WrapIt
 
             var isIEnumerable = false;
             var isGenericIEnumerable = false;
-            var isGenericIEquatable = false;
             foreach (var @interface in Type.GetInterfaces())
             {
                 if (@interface.IsPublic && !builder.AssembliesWithTypesToWrap.Contains(@interface.Assembly) && builder.InterfaceResolver?.Invoke(Type, @interface) != false)
@@ -57,10 +56,6 @@ namespace WrapIt
                         if (!isGenericIEnumerable && genericTypeDefinition == typeof(IEnumerable<>))
                         {
                             isGenericIEnumerable = true;
-                        }
-                        else if (!isGenericIEquatable && genericTypeDefinition == typeof(IEquatable<>))
-                        {
-                            isGenericIEquatable = true;
                         }
                     }
                     var interfaceTypeData = (InterfaceData)builder.GetTypeData(@interface, typeDatas);
@@ -143,56 +138,47 @@ namespace WrapIt
                 }
             }
 
-            if (!Type.IsInterface)
+            if (!Type.IsInterface && isIEnumerable && !isGenericIEnumerable)
             {
-                if (isEquatable && !isGenericIEquatable)
+                var addMethods = Methods.Where(m => m.Name == "Add").ToList();
+                var specificAddMethods = addMethods.Where(m => m.Parameters.Count == 1 && (m.ReturnType.Type == typeof(void) || m.ReturnType.Type == typeof(bool) || m.ReturnType.Type == typeof(int))).ToList();
+                var addMethod = specificAddMethods.Count == 1 ? specificAddMethods[0] : null;
+                TypeData? genericArg = null;
+                if (addMethod != null)
                 {
-                    var interfaceTypeData = (InterfaceData)builder.GetTypeData(typeof(IEquatable<>).MakeGenericType(Type), typeDatas);
-                    interfaceTypeData.Initialize(builder, typeDatas, bindingFlags);
-                    Interfaces.Add(interfaceTypeData);
+                    genericArg = addMethod.Parameters[0].Type;
                 }
-                if (isIEnumerable && !isGenericIEnumerable)
+                else if (addMethods.Count > 0)
                 {
-                    var addMethods = Methods.Where(m => m.Name == "Add").ToList();
-                    var specificAddMethods = addMethods.Where(m => m.Parameters.Count == 1 && (m.ReturnType.Type == typeof(void) || m.ReturnType.Type == typeof(bool) || m.ReturnType.Type == typeof(int))).ToList();
-                    var addMethod = specificAddMethods.Count == 1 ? specificAddMethods[0] : null;
-                    TypeData? genericArg = null;
-                    if (addMethod != null)
+                    var returnType = addMethods[0].ReturnType;
+                    if (addMethods.All(m => m.ReturnType.Equals(returnType)))
                     {
-                        genericArg = addMethod.Parameters[0].Type;
+                        genericArg = returnType;
                     }
-                    else if (addMethods.Count > 0)
+                }
+                var indexers = Properties.Where(p => p.Name == "Item").ToList();
+                if (genericArg != null || indexers.Count > 0)
+                {
+                    var indexerType = indexers[0].Type;
+                    if (genericArg == null || !indexers.All(i => i.Type.Equals(genericArg)))
                     {
-                        var returnType = addMethods[0].ReturnType;
-                        if (addMethods.All(m => m.ReturnType.Equals(returnType)))
+                        genericArg = indexerType;
+                        if (!indexers.All(i => i.Type.Equals(genericArg)) || (addMethods.Count > 0 && !addMethods.Any(m => m.Parameters.Count == 1 && m.Parameters[0].Type.Equals(genericArg))))
                         {
-                            genericArg = returnType;
+                            genericArg = null;
                         }
                     }
-                    var indexers = Properties.Where(p => p.Name == "Item").ToList();
-                    if (genericArg != null || indexers.Count > 0)
+                    if (genericArg != null)
                     {
-                        var indexerType = indexers[0].Type;
-                        if (genericArg == null || !indexers.All(i => i.Type.Equals(genericArg)))
+                        var interfaceTypeData = (InterfaceData)builder.GetTypeData(typeof(IEnumerable<>).MakeGenericType(genericArg.Type), typeDatas);
+                        interfaceTypeData.Initialize(builder, typeDatas, bindingFlags);
+                        Interfaces.Add(interfaceTypeData);
+                        for (var i = 0; i < Methods.Count; ++i)
                         {
-                            genericArg = indexerType;
-                            if (!indexers.All(i => i.Type.Equals(genericArg)) || (addMethods.Count > 0 && !addMethods.Any(m => m.Parameters.Count == 1 && m.Parameters[0].Type.Equals(genericArg))))
+                            if (Methods[i].Name == "GetEnumerator")
                             {
-                                genericArg = null;
-                            }
-                        }
-                        if (genericArg != null)
-                        {
-                            var interfaceTypeData = (InterfaceData)builder.GetTypeData(typeof(IEnumerable<>).MakeGenericType(genericArg.Type), typeDatas);
-                            interfaceTypeData.Initialize(builder, typeDatas, bindingFlags);
-                            Interfaces.Add(interfaceTypeData);
-                            for (var i = 0; i < Methods.Count; ++i)
-                            {
-                                if (Methods[i].Name == "GetEnumerator")
-                                {
-                                    Methods.RemoveAt(i);
-                                    break;
-                                }
+                                Methods.RemoveAt(i);
+                                break;
                             }
                         }
                     }

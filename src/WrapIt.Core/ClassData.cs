@@ -337,7 +337,13 @@ namespace WrapIt
                     }
                     else if (method.Name == "Equals" && method.OverrideObject)
                     {
-                        await writer.WriteLineAsync($"        public override bool Equals({method.Parameters[0].GetAsClassParameter()}) => {ObjectName}.Equals(obj is {ClassName} {(builder.MinCSharpVersion >= 7M ? $"o ? o" : $"? (({ClassName})obj)")}.{ObjectName} : obj);").ConfigureAwait(false);
+                        var variableName = method.Parameters[0].Name != "o" ? "o" : "obj";
+                        await writer.WriteLineAsync($"        public override bool Equals({method.Parameters[0].GetAsClassParameter()}) => {ObjectName}.Equals({method.Parameters[0].Name} is {ClassName} {(builder.MinCSharpVersion >= 7M ? $"{variableName} ? {variableName}" : $"? (({ClassName}){method.Parameters[0].Name})")}.{ObjectName} : {method.Parameters[0].Name});").ConfigureAwait(false);
+                    }
+                    else if (method.Name == "CompareTo" && method.DeclaringInterfaceType?.Type == typeof(IComparable))
+                    {
+                        var variableName = method.Parameters[0].Name != "o" ? "o" : "obj";
+                        await writer.WriteLineAsync($"        public int CompareTo({method.Parameters[0].GetAsClassParameter()}) => {ObjectName}.CompareTo({method.Parameters[0].Name} is {ClassName} {(builder.MinCSharpVersion >= 7M ? $"{variableName} ? {variableName}" : $"? (({ClassName}){method.Parameters[0].Name})")}.{ObjectName} : {method.Parameters[0].Name});").ConfigureAwait(false);
                     }
                     else
                     {
@@ -358,7 +364,6 @@ namespace WrapIt
                 }
 
                 var genericIEnumerable = Interfaces.FirstOrDefault(i => i.Type.IsGenericType && i.Type.GetGenericTypeDefinition() == typeof(IEnumerable<>));
-                var genericIEquatable = Interfaces.FirstOrDefault(i => i.Type.IsGenericType && i.Type.GetGenericTypeDefinition() == typeof(IEquatable<>));
                 foreach (var @interface in Interfaces)
                 {
                     if (BaseType?.HasInterface(@interface) != true || (genericIEnumerable != null && @interface.Type == typeof(IEnumerable)))
@@ -387,11 +392,9 @@ namespace WrapIt
                                         await writer.WriteLineAsync($"        {method.ReturnType.InterfaceName} {@interface.InterfaceName}.GetEnumerator() => (({genericIEnumerable.InterfaceName})this).GetEnumerator();").ConfigureAwait(false);
                                     }
                                 }
-                                else if (genericIEquatable == @interface)
+                                else if (method.Name == "CompareTo" && @interface.Type == typeof(IComparable))
                                 {
-                                    await writer.WriteLineAsync($"        public bool Equals({method.Parameters[0].GetAsClassParameter()}) => {ObjectName}.Equals({method.Parameters[0].Name}.{ObjectName});").ConfigureAwait(false);
-                                    await writer.WriteLineAsync().ConfigureAwait(false);
-                                    await writer.WriteLineAsync($"        bool {@interface.InterfaceName}.Equals({method.Parameters[0].GetAsInterfaceParameter()}) => Equals({method.Parameters[0].GetCodeToConvertToClassType()});").ConfigureAwait(false);
+                                    await writer.WriteLineAsync($"        int IComparable.CompareTo(object obj) => ((IComparable){ObjectName}).CompareTo(obj is {ClassName} {(builder.MinCSharpVersion >= 7M ? $"o ? o" : $"? (({ClassName})obj)")}.{ObjectName} : obj);").ConfigureAwait(false);
                                 }
                                 else
                                 {
@@ -411,5 +414,7 @@ namespace WrapIt
         private bool HasInterface(InterfaceData @interface) => Interfaces.Any(i => i.Equals(@interface)) || BaseType?.HasInterface(@interface) == true;
 
         private ClassData? GetLowestTypeWithEvents() => BaseType?.GetLowestTypeWithEvents() ?? (Events.Count > 0 ? this : null);
+
+        private IEnumerable<MethodData> GetAllMethods() => Methods.Concat(BaseType?.GetAllMethods() ?? Enumerable.Empty<MethodData>());
     }
 }
