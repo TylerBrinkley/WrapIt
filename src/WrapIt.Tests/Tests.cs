@@ -317,7 +317,7 @@ namespace OtherNamespace
         {
             if (value != null)
             {
-                OtherNamespace.FieldChangeEventHandler handler = (source, e) => value(source, (FieldChangeEventArgsWrapper)e);
+                OtherNamespace.FieldChangeEventHandler handler = (source, e) => value(TryWrap(source), (FieldChangeEventArgsWrapper)e);
                 if (toAdd)
                 {
                     Object.FieldChange += handler;
@@ -328,6 +328,8 @@ namespace OtherNamespace
                 }
             }
         }
+
+        protected virtual object TryWrap(object obj) => obj is OtherNamespace.Other o ? (OtherWrapper)o : obj;
 
         public OtherWrapper(OtherNamespace.Other @object)
         {

@@ -263,31 +263,34 @@ namespace WrapIt
                 {
                     await writer.WriteLineAsync($"        public event {@event.Type.InterfaceName} {@event.Name}").ConfigureAwait(false);
                     await writer.WriteLineAsync("        {").ConfigureAwait(false);
-                    var eventHandlerWrapped = @event.Type.InterfaceName != @event.Type.ClassName;
                     var eventHelperName = $"AddOrRemove{@event.Name}";
-                    await writer.WriteLineAsync($"            add {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {(eventHandlerWrapped ? $"{eventHelperName}(value, true)" : $"{ObjectName}.{@event.Name} += value")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")}").ConfigureAwait(false);
-                    await writer.WriteLineAsync($"            remove {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {(eventHandlerWrapped ? $"{eventHelperName}(value, false)" : $"{ObjectName}.{@event.Name} -= value")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")}").ConfigureAwait(false);
+                    await writer.WriteLineAsync($"            add {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {eventHelperName}(value, true);{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")}").ConfigureAwait(false);
+                    await writer.WriteLineAsync($"            remove {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {eventHelperName}(value, false);{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")}").ConfigureAwait(false);
                     await writer.WriteLineAsync("        }").ConfigureAwait(false);
-                    if (eventHandlerWrapped)
-                    {
-                        await writer.WriteLineAsync().ConfigureAwait(false);
-                        await writer.WriteLineAsync($"        private void {eventHelperName}({@event.Type.InterfaceName} value, bool toAdd)").ConfigureAwait(false);
-                        await writer.WriteLineAsync("        {").ConfigureAwait(false);
-                        await writer.WriteLineAsync("            if (value != null)").ConfigureAwait(false);
-                        await writer.WriteLineAsync("            {").ConfigureAwait(false);
-                        const string handlerName = "handler";
-                        await writer.WriteLineAsync($"                {@event.Type.ClassName} {handlerName} = ({string.Join(", ", @event.Type.Parameters.Select(p => p.GetAsArgument()))}) => value({string.Join(", ", @event.Type.Parameters.Select(p => p.Type.GetCodeToConvertToClassType(p.Name)))});").ConfigureAwait(false);
-                        await writer.WriteLineAsync("                if (toAdd)").ConfigureAwait(false);
-                        await writer.WriteLineAsync("                {").ConfigureAwait(false);
-                        await writer.WriteLineAsync($"                    {ObjectName}.{@event.Name} += {handlerName};").ConfigureAwait(false);
-                        await writer.WriteLineAsync("                }").ConfigureAwait(false);
-                        await writer.WriteLineAsync("                else").ConfigureAwait(false);
-                        await writer.WriteLineAsync("                {").ConfigureAwait(false);
-                        await writer.WriteLineAsync($"                    {ObjectName}.{@event.Name} -= {handlerName};").ConfigureAwait(false);
-                        await writer.WriteLineAsync("                }").ConfigureAwait(false);
-                        await writer.WriteLineAsync("            }").ConfigureAwait(false);
-                        await writer.WriteLineAsync("        }").ConfigureAwait(false);
-                    }
+                    await writer.WriteLineAsync().ConfigureAwait(false);
+                    await writer.WriteLineAsync($"        private void {eventHelperName}({@event.Type.InterfaceName} value, bool toAdd)").ConfigureAwait(false);
+                    await writer.WriteLineAsync("        {").ConfigureAwait(false);
+                    await writer.WriteLineAsync("            if (value != null)").ConfigureAwait(false);
+                    await writer.WriteLineAsync("            {").ConfigureAwait(false);
+                    const string handlerName = "handler";
+                    await writer.WriteLineAsync($"                {@event.Type.ClassName} {handlerName} = ({string.Join(", ", @event.Type.Parameters.Select(p => p.GetAsArgument()))}) => value({string.Join(", ", @event.Type.Parameters.Select((p, i) => i == 0 && p.Type.Type == typeof(object) ? $"TryWrap({p.Name})" : p.Type.GetCodeToConvertToClassType(p.Name)))});").ConfigureAwait(false);
+                    await writer.WriteLineAsync("                if (toAdd)").ConfigureAwait(false);
+                    await writer.WriteLineAsync("                {").ConfigureAwait(false);
+                    await writer.WriteLineAsync($"                    {ObjectName}.{@event.Name} += {handlerName};").ConfigureAwait(false);
+                    await writer.WriteLineAsync("                }").ConfigureAwait(false);
+                    await writer.WriteLineAsync("                else").ConfigureAwait(false);
+                    await writer.WriteLineAsync("                {").ConfigureAwait(false);
+                    await writer.WriteLineAsync($"                    {ObjectName}.{@event.Name} -= {handlerName};").ConfigureAwait(false);
+                    await writer.WriteLineAsync("                }").ConfigureAwait(false);
+                    await writer.WriteLineAsync("            }").ConfigureAwait(false);
+                    await writer.WriteLineAsync("        }").ConfigureAwait(false);
+                    await writer.WriteLineAsync().ConfigureAwait(false);
+                }
+
+                var lowestTypeWithEvents = GetLowestTypeWithEvents();
+                if (lowestTypeWithEvents != null)
+                {
+                    await writer.WriteLineAsync($"        protected {(lowestTypeWithEvents.Equals(this) ? "virtual" : "override")} object TryWrap(object obj) => obj is {typeFullName} {(builder.MinCSharpVersion >= 7M ? $"o ? ({ClassName})o" : $"? ({ClassName})({typeFullName})obj")} : obj;");
                     await writer.WriteLineAsync().ConfigureAwait(false);
                 }
 
@@ -406,5 +409,7 @@ namespace WrapIt
         }
 
         private bool HasInterface(InterfaceData @interface) => Interfaces.Any(i => i.Equals(@interface)) || BaseType?.HasInterface(@interface) == true;
+
+        private ClassData? GetLowestTypeWithEvents() => BaseType?.GetLowestTypeWithEvents() ?? (Events.Count > 0 ? this : null);
     }
 }
