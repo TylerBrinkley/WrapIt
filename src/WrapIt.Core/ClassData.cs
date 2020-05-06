@@ -276,27 +276,39 @@ namespace WrapIt
 
                 foreach (var property in Properties)
                 {
-                    if (property.Parameters.Count > 0)
+                    var wrapInCompilerFlag = property.Generation == MemberGeneration.WrapInCompilerFlag;
+                    if (wrapInCompilerFlag || property.Generation == MemberGeneration.Full)
                     {
-                        var basicArgumentList = string.Join(", ", property.Parameters.Select(p => p.GetAsArgument()));
-                        await writer.WriteLineAsync($"        public {property.Type.ClassName} this[{string.Join(", ", property.Parameters.Select(p => p.GetAsClassParameter()))}] {(property.HasGetter && !property.HasSetter ? $"=> {ObjectName}[{basicArgumentList}];" : $"{{ {(property.HasGetter ? $"get {(builder.MinCSharpVersion >= 7M ? "=>" : "{ return")} {ObjectName}[{basicArgumentList}];{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}{(property.HasSetter ? $"set {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {ObjectName}[{basicArgumentList}] = {property.Type.GetCodeToConvertToActualType("value")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}}}")}").ConfigureAwait(false);
-                        if (property.Type.InterfaceName != property.Type.ClassName || property.Parameters.Any(p => p.Type.ClassName != p.Type.InterfaceName))
+                        if (wrapInCompilerFlag)
                         {
-                            var advancedArgumentList = string.Join(", ", property.Parameters.Select(p => p.Type.GetCodeToConvertToClassType(p.Name)));
-                            await writer.WriteLineAsync().ConfigureAwait(false);
-                            await writer.WriteLineAsync($"        {property.Type.InterfaceName} {property.DeclaringInterfaceType?.InterfaceName ?? InterfaceName}.this[{string.Join(", ", property.Parameters.Select(p => p.GetAsInterfaceParameter()))}] {(property.HasGetter && !property.HasSetter ? $"=> this[{advancedArgumentList}];" : $"{{ {(property.HasGetter ? $"get {(builder.MinCSharpVersion >= 7M ? "=>" : "{ return")} this[{advancedArgumentList}];{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}{(property.HasSetter ? $"set {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} this[{advancedArgumentList}] = {property.Type.GetCodeToConvertToClassType("value")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}}}")}").ConfigureAwait(false);
+                            await writer.WriteLineAsync($"#if {builder.DefaultMemberGenerationCompilerFlag}").ConfigureAwait(false);
                         }
-                    }
-                    else
-                    {
-                        await writer.WriteLineAsync($"        public {property.Type.ClassName} {property.Name} {(property.HasGetter && !property.HasSetter ? $"=> {ObjectName}.{property.Name};" : $"{{ {(property.HasGetter ? $"get {(builder.MinCSharpVersion >= 7M ? "=>" : "{ return")} {ObjectName}.{property.Name};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}{(property.HasSetter ? $"set {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {ObjectName}.{property.Name} = {property.Type.GetCodeToConvertToActualType("value")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}}}")}").ConfigureAwait(false);
-                        if (property.Type.InterfaceName != property.Type.ClassName)
+                        if (property.Parameters.Count > 0)
                         {
-                            await writer.WriteLineAsync().ConfigureAwait(false);
-                            await writer.WriteLineAsync($"        {property.Type.InterfaceName} {property.DeclaringInterfaceType?.InterfaceName ?? InterfaceName}.{property.Name} {(property.HasGetter && !property.HasSetter ? $"=> {property.Name};" : $"{{ {(property.HasGetter ? $"get {(builder.MinCSharpVersion >= 7M ? "=>" : "{ return")} {property.Name};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}{(property.HasSetter ? $"set {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {property.Name} = {property.Type.GetCodeToConvertToClassType("value")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}}}")}").ConfigureAwait(false);
+                            var basicArgumentList = string.Join(", ", property.Parameters.Select(p => p.GetAsArgument()));
+                            await writer.WriteLineAsync($"        public {property.Type.ClassName} this[{string.Join(", ", property.Parameters.Select(p => p.GetAsClassParameter()))}] {(property.HasGetter && !property.HasSetter ? $"=> {ObjectName}[{basicArgumentList}];" : $"{{ {(property.HasGetter ? $"get {(builder.MinCSharpVersion >= 7M ? "=>" : "{ return")} {ObjectName}[{basicArgumentList}];{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}{(property.HasSetter ? $"set {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {ObjectName}[{basicArgumentList}] = {property.Type.GetCodeToConvertToActualType("value")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}}}")}").ConfigureAwait(false);
+                            if (property.Type.InterfaceName != property.Type.ClassName || property.Parameters.Any(p => p.Type.ClassName != p.Type.InterfaceName))
+                            {
+                                var advancedArgumentList = string.Join(", ", property.Parameters.Select(p => p.Type.GetCodeToConvertToClassType(p.Name)));
+                                await writer.WriteLineAsync().ConfigureAwait(false);
+                                await writer.WriteLineAsync($"        {property.Type.InterfaceName} {property.DeclaringInterfaceType?.InterfaceName ?? InterfaceName}.this[{string.Join(", ", property.Parameters.Select(p => p.GetAsInterfaceParameter()))}] {(property.HasGetter && !property.HasSetter ? $"=> this[{advancedArgumentList}];" : $"{{ {(property.HasGetter ? $"get {(builder.MinCSharpVersion >= 7M ? "=>" : "{ return")} this[{advancedArgumentList}];{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}{(property.HasSetter ? $"set {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} this[{advancedArgumentList}] = {property.Type.GetCodeToConvertToClassType("value")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}}}")}").ConfigureAwait(false);
+                            }
                         }
+                        else
+                        {
+                            await writer.WriteLineAsync($"        public {property.Type.ClassName} {property.Name} {(property.HasGetter && !property.HasSetter ? $"=> {ObjectName}.{property.Name};" : $"{{ {(property.HasGetter ? $"get {(builder.MinCSharpVersion >= 7M ? "=>" : "{ return")} {ObjectName}.{property.Name};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}{(property.HasSetter ? $"set {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {ObjectName}.{property.Name} = {property.Type.GetCodeToConvertToActualType("value")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}}}")}").ConfigureAwait(false);
+                            if (property.Type.InterfaceName != property.Type.ClassName)
+                            {
+                                await writer.WriteLineAsync().ConfigureAwait(false);
+                                await writer.WriteLineAsync($"        {property.Type.InterfaceName} {property.DeclaringInterfaceType?.InterfaceName ?? InterfaceName}.{property.Name} {(property.HasGetter && !property.HasSetter ? $"=> {property.Name};" : $"{{ {(property.HasGetter ? $"get {(builder.MinCSharpVersion >= 7M ? "=>" : "{ return")} {property.Name};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}{(property.HasSetter ? $"set {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {property.Name} = {property.Type.GetCodeToConvertToClassType("value")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}}}")}").ConfigureAwait(false);
+                            }
+                        }
+                        if (wrapInCompilerFlag)
+                        {
+                            await writer.WriteLineAsync("#endif").ConfigureAwait(false);
+                        }
+                        await writer.WriteLineAsync().ConfigureAwait(false);
                     }
-                    await writer.WriteLineAsync().ConfigureAwait(false);
                 }
 
                 foreach (var @interface in Interfaces)
@@ -324,30 +336,42 @@ namespace WrapIt
 
                 foreach (var @event in Events)
                 {
-                    await writer.WriteLineAsync($"        public event {@event.Type.InterfaceName} {@event.Name}").ConfigureAwait(false);
-                    await writer.WriteLineAsync("        {").ConfigureAwait(false);
-                    var eventHelperName = $"AddOrRemove{@event.Name}";
-                    await writer.WriteLineAsync($"            add {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {eventHelperName}(value, true);{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")}").ConfigureAwait(false);
-                    await writer.WriteLineAsync($"            remove {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {eventHelperName}(value, false);{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")}").ConfigureAwait(false);
-                    await writer.WriteLineAsync("        }").ConfigureAwait(false);
-                    await writer.WriteLineAsync().ConfigureAwait(false);
-                    await writer.WriteLineAsync($"        private void {eventHelperName}({@event.Type.InterfaceName} value, bool toAdd)").ConfigureAwait(false);
-                    await writer.WriteLineAsync("        {").ConfigureAwait(false);
-                    await writer.WriteLineAsync("            if (value != null)").ConfigureAwait(false);
-                    await writer.WriteLineAsync("            {").ConfigureAwait(false);
-                    const string handlerName = "handler";
-                    await writer.WriteLineAsync($"                {@event.Type.ClassName} {handlerName} = ({string.Join(", ", @event.Type.Parameters.Select(p => p.GetAsArgument()))}) => value({string.Join(", ", @event.Type.Parameters.Select((p, i) => i == 0 && p.Type.Type == typeof(object) ? $"{p.Name} is {typeFullName} {(builder.MinCSharpVersion >= 7M ? $"o ? ({ClassName})o" : $"? ({ClassName})({typeFullName}){p.Name}")} : {p.Name}" : p.Type.GetCodeToConvertToClassType(p.Name)))});").ConfigureAwait(false);
-                    await writer.WriteLineAsync("                if (toAdd)").ConfigureAwait(false);
-                    await writer.WriteLineAsync("                {").ConfigureAwait(false);
-                    await writer.WriteLineAsync($"                    {ObjectName}.{@event.Name} += {handlerName};").ConfigureAwait(false);
-                    await writer.WriteLineAsync("                }").ConfigureAwait(false);
-                    await writer.WriteLineAsync("                else").ConfigureAwait(false);
-                    await writer.WriteLineAsync("                {").ConfigureAwait(false);
-                    await writer.WriteLineAsync($"                    {ObjectName}.{@event.Name} -= {handlerName};").ConfigureAwait(false);
-                    await writer.WriteLineAsync("                }").ConfigureAwait(false);
-                    await writer.WriteLineAsync("            }").ConfigureAwait(false);
-                    await writer.WriteLineAsync("        }").ConfigureAwait(false);
-                    await writer.WriteLineAsync().ConfigureAwait(false);
+                    var wrapInCompilerFlag = @event.Generation == MemberGeneration.WrapInCompilerFlag;
+                    if (wrapInCompilerFlag || @event.Generation == MemberGeneration.Full)
+                    {
+                        if (wrapInCompilerFlag)
+                        {
+                            await writer.WriteLineAsync($"#if {builder.DefaultMemberGenerationCompilerFlag}").ConfigureAwait(false);
+                        }
+                        await writer.WriteLineAsync($"        public event {@event.Type.InterfaceName} {@event.Name}").ConfigureAwait(false);
+                        await writer.WriteLineAsync("        {").ConfigureAwait(false);
+                        var eventHelperName = $"AddOrRemove{@event.Name}";
+                        await writer.WriteLineAsync($"            add {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {eventHelperName}(value, true);{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")}").ConfigureAwait(false);
+                        await writer.WriteLineAsync($"            remove {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {eventHelperName}(value, false);{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")}").ConfigureAwait(false);
+                        await writer.WriteLineAsync("        }").ConfigureAwait(false);
+                        await writer.WriteLineAsync().ConfigureAwait(false);
+                        await writer.WriteLineAsync($"        private void {eventHelperName}({@event.Type.InterfaceName} value, bool toAdd)").ConfigureAwait(false);
+                        await writer.WriteLineAsync("        {").ConfigureAwait(false);
+                        await writer.WriteLineAsync("            if (value != null)").ConfigureAwait(false);
+                        await writer.WriteLineAsync("            {").ConfigureAwait(false);
+                        const string handlerName = "handler";
+                        await writer.WriteLineAsync($"                {@event.Type.ClassName} {handlerName} = ({string.Join(", ", @event.Type.Parameters.Select(p => p.GetAsArgument()))}) => value({string.Join(", ", @event.Type.Parameters.Select((p, i) => i == 0 && p.Type.Type == typeof(object) ? $"{p.Name} is {typeFullName} {(builder.MinCSharpVersion >= 7M ? $"o ? ({ClassName})o" : $"? ({ClassName})({typeFullName}){p.Name}")} : {p.Name}" : p.Type.GetCodeToConvertToClassType(p.Name)))});").ConfigureAwait(false);
+                        await writer.WriteLineAsync("                if (toAdd)").ConfigureAwait(false);
+                        await writer.WriteLineAsync("                {").ConfigureAwait(false);
+                        await writer.WriteLineAsync($"                    {ObjectName}.{@event.Name} += {handlerName};").ConfigureAwait(false);
+                        await writer.WriteLineAsync("                }").ConfigureAwait(false);
+                        await writer.WriteLineAsync("                else").ConfigureAwait(false);
+                        await writer.WriteLineAsync("                {").ConfigureAwait(false);
+                        await writer.WriteLineAsync($"                    {ObjectName}.{@event.Name} -= {handlerName};").ConfigureAwait(false);
+                        await writer.WriteLineAsync("                }").ConfigureAwait(false);
+                        await writer.WriteLineAsync("            }").ConfigureAwait(false);
+                        await writer.WriteLineAsync("        }").ConfigureAwait(false);
+                        if (wrapInCompilerFlag)
+                        {
+                            await writer.WriteLineAsync("#endif").ConfigureAwait(false);
+                        }
+                        await writer.WriteLineAsync().ConfigureAwait(false);
+                    }
                 }
 
                 // TODO: Add explicit interface implementation support for events
@@ -379,42 +403,54 @@ namespace WrapIt
 
                 foreach (var method in Methods)
                 {
-                    await writer.WriteLineAsync().ConfigureAwait(false);
-                    var isGenericGetEnumerator = method.Name == "GetEnumerator" && method.ReturnType.Type != typeof(IEnumerator);
-                    if (isGenericGetEnumerator)
-                    {
-                        await writer.WriteLineAsync($"        public {method.ReturnType.ClassName} GetEnumerator()").ConfigureAwait(false);
-                        await writer.WriteLineAsync("        {").ConfigureAwait(false);
-                        await writer.WriteLineAsync($"            foreach (var item in {ObjectName})").ConfigureAwait(false);
-                        await writer.WriteLineAsync("            {").ConfigureAwait(false);
-                        await writer.WriteLineAsync("                yield return item;").ConfigureAwait(false);
-                        await writer.WriteLineAsync("            }").ConfigureAwait(false);
-                        await writer.WriteLineAsync("        }").ConfigureAwait(false);
-                    }
-                    else if (method.Name == "Equals" && method.OverrideObject)
-                    {
-                        var variableName = method.Parameters[0].Name != "o" ? "o" : "obj";
-                        await writer.WriteLineAsync($"        public override bool Equals({method.Parameters[0].GetAsClassParameter()}) => {ObjectName}.Equals({method.Parameters[0].Name} is {ClassName} {(builder.MinCSharpVersion >= 7M ? $"{variableName} ? {variableName}" : $"? (({ClassName}){method.Parameters[0].Name})")}.{ObjectName} : {method.Parameters[0].Name});").ConfigureAwait(false);
-                    }
-                    else if (method.Name == "CompareTo" && method.DeclaringInterfaceType?.Type == typeof(IComparable))
-                    {
-                        var variableName = method.Parameters[0].Name != "o" ? "o" : "obj";
-                        await writer.WriteLineAsync($"        public int CompareTo({method.Parameters[0].GetAsClassParameter()}) => {ObjectName}.CompareTo({method.Parameters[0].Name} is {ClassName} {(builder.MinCSharpVersion >= 7M ? $"{variableName} ? {variableName}" : $"? (({ClassName}){method.Parameters[0].Name})")}.{ObjectName} : {method.Parameters[0].Name});").ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        await writer.WriteLineAsync($"        public {(method.OverrideObject ? "override " : string.Empty)}{method.ReturnType.ClassName} {method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetAsClassParameter()))}) => {ObjectName}.{method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetCodeToConvertToActualType()))});").ConfigureAwait(false);
-                    }
-                    if (method.ReturnType.ClassName != method.ReturnType.InterfaceName || method.Parameters.Any(p => p.Type.ClassName != p.Type.InterfaceName))
+                    var wrapInCompilerFlag = method.Generation == MemberGeneration.WrapInCompilerFlag;
+                    if (wrapInCompilerFlag || method.Generation == MemberGeneration.Full)
                     {
                         await writer.WriteLineAsync().ConfigureAwait(false);
+                        if (wrapInCompilerFlag)
+                        {
+                            await writer.WriteLineAsync($"#if {builder.DefaultMemberGenerationCompilerFlag}").ConfigureAwait(false);
+                        }
+                        var isGenericGetEnumerator = method.Name == "GetEnumerator" && method.ReturnType.Type != typeof(IEnumerator);
                         if (isGenericGetEnumerator)
                         {
-                            await writer.WriteLineAsync($"        {method.ReturnType.InterfaceName} {method.DeclaringInterfaceType?.InterfaceName ?? InterfaceName}.GetEnumerator() => GetEnumerator();").ConfigureAwait(false);
+                            await writer.WriteLineAsync($"        public {method.ReturnType.ClassName} GetEnumerator()").ConfigureAwait(false);
+                            await writer.WriteLineAsync("        {").ConfigureAwait(false);
+                            await writer.WriteLineAsync($"            foreach (var item in {ObjectName})").ConfigureAwait(false);
+                            await writer.WriteLineAsync("            {").ConfigureAwait(false);
+                            await writer.WriteLineAsync("                yield return item;").ConfigureAwait(false);
+                            await writer.WriteLineAsync("            }").ConfigureAwait(false);
+                            await writer.WriteLineAsync("        }").ConfigureAwait(false);
+                        }
+                        else if (method.Name == "Equals" && method.OverrideObject)
+                        {
+                            var variableName = method.Parameters[0].Name != "o" ? "o" : "obj";
+                            await writer.WriteLineAsync($"        public override bool Equals({method.Parameters[0].GetAsClassParameter()}) => {ObjectName}.Equals({method.Parameters[0].Name} is {ClassName} {(builder.MinCSharpVersion >= 7M ? $"{variableName} ? {variableName}" : $"? (({ClassName}){method.Parameters[0].Name})")}.{ObjectName} : {method.Parameters[0].Name});").ConfigureAwait(false);
+                        }
+                        else if (method.Name == "CompareTo" && method.DeclaringInterfaceType?.Type == typeof(IComparable))
+                        {
+                            var variableName = method.Parameters[0].Name != "o" ? "o" : "obj";
+                            await writer.WriteLineAsync($"        public int CompareTo({method.Parameters[0].GetAsClassParameter()}) => {ObjectName}.CompareTo({method.Parameters[0].Name} is {ClassName} {(builder.MinCSharpVersion >= 7M ? $"{variableName} ? {variableName}" : $"? (({ClassName}){method.Parameters[0].Name})")}.{ObjectName} : {method.Parameters[0].Name});").ConfigureAwait(false);
                         }
                         else
                         {
-                            await writer.WriteLineAsync($"        {method.ReturnType.InterfaceName} {method.DeclaringInterfaceType?.InterfaceName ?? InterfaceName}.{method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetAsInterfaceParameter()))}) => {method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetCodeToConvertToClassType()))});").ConfigureAwait(false);
+                            await writer.WriteLineAsync($"        public {(method.OverrideObject ? "override " : string.Empty)}{method.ReturnType.ClassName} {method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetAsClassParameter()))}) => {ObjectName}.{method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetCodeToConvertToActualType()))});").ConfigureAwait(false);
+                        }
+                        if (method.ReturnType.ClassName != method.ReturnType.InterfaceName || method.Parameters.Any(p => p.Type.ClassName != p.Type.InterfaceName))
+                        {
+                            await writer.WriteLineAsync().ConfigureAwait(false);
+                            if (isGenericGetEnumerator)
+                            {
+                                await writer.WriteLineAsync($"        {method.ReturnType.InterfaceName} {method.DeclaringInterfaceType?.InterfaceName ?? InterfaceName}.GetEnumerator() => GetEnumerator();").ConfigureAwait(false);
+                            }
+                            else
+                            {
+                                await writer.WriteLineAsync($"        {method.ReturnType.InterfaceName} {method.DeclaringInterfaceType?.InterfaceName ?? InterfaceName}.{method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetAsInterfaceParameter()))}) => {method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetCodeToConvertToClassType()))});").ConfigureAwait(false);
+                            }
+                        }
+                        if (wrapInCompilerFlag)
+                        {
+                            await writer.WriteLineAsync("#endif").ConfigureAwait(false);
                         }
                     }
                 }

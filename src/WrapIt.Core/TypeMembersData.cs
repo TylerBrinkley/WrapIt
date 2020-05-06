@@ -67,33 +67,37 @@ namespace WrapIt
             var propertyInfos = Type.GetProperties(bindingFlags);
             foreach (var property in propertyInfos)
             {
-                if (property.GetAccessors().All(a => IncludeMethod(builder, a, typeDatas, out _)) && builder.PropertyResolver?.Invoke(Type, property) != false)
+                if (property.GetAccessors().All(a => IncludeMethod(builder, a, typeDatas, out _)))
                 {
-                    var propertyType = property.PropertyType;
-                    var propertyTypeData = builder.GetTypeData(propertyType, typeDatas);
-                    DependentTypes.UnionWith(propertyTypeData.GetPublicTypes());
-                    var indexParameters = property.GetIndexParameters();
-                    var parameters = new List<ParameterData>();
-                    if (indexParameters?.Length > 0)
+                    var generation = builder.PropertyResolver?.Invoke(Type, property) ?? MemberGeneration.Full;
+                    if (generation != MemberGeneration.None)
                     {
-                        foreach (var parameter in indexParameters)
+                        var propertyType = property.PropertyType;
+                        var propertyTypeData = builder.GetTypeData(propertyType, typeDatas);
+                        DependentTypes.UnionWith(propertyTypeData.GetPublicTypes());
+                        var indexParameters = property.GetIndexParameters();
+                        var parameters = new List<ParameterData>();
+                        if (indexParameters?.Length > 0)
                         {
-                            var parameterType = parameter.ParameterType;
-                            var parameterTypeData = builder.GetTypeData(parameterType, typeDatas);
-                            DependentTypes.UnionWith(parameterTypeData.GetPublicTypes());
-                            parameters.Add(new ParameterData(parameterTypeData, parameter.Name, parameter.IsOut));
+                            foreach (var parameter in indexParameters)
+                            {
+                                var parameterType = parameter.ParameterType;
+                                var parameterTypeData = builder.GetTypeData(parameterType, typeDatas);
+                                DependentTypes.UnionWith(parameterTypeData.GetPublicTypes());
+                                parameters.Add(new ParameterData(parameterTypeData, parameter.Name, parameter.IsOut));
+                            }
                         }
-                    }
 
-                    var propertyData = new PropertyData(propertyTypeData, property.Name, property.GetGetMethod() != null, property.GetSetMethod() != null, parameters);
-                    foreach (var @interface in Interfaces)
-                    {
-                        if (@interface.Properties.Any(p => p.Equals(propertyData)))
+                        var propertyData = new PropertyData(propertyTypeData, property.Name, property.GetGetMethod() != null, property.GetSetMethod() != null, parameters, generation);
+                        foreach (var @interface in Interfaces)
                         {
-                            propertyData.DeclaringInterfaceType = @interface;
+                            if (@interface.Properties.Any(p => p.Equals(propertyData)))
+                            {
+                                propertyData.DeclaringInterfaceType = @interface;
+                            }
                         }
+                        Properties.Add(propertyData);
                     }
-                    Properties.Add(propertyData);
                 }
             }
 
@@ -103,38 +107,42 @@ namespace WrapIt
             var methodInfos = Type.GetMethods(bindingFlags);
             foreach (var method in methodInfos)
             {
-                if (method.DeclaringType != typeof(object) && !method.IsSpecialName && IncludeMethod(builder, method, typeDatas, out var overrideObject) && builder.MethodResolver?.Invoke(Type, method) != false)
+                if (method.DeclaringType != typeof(object) && !method.IsSpecialName && IncludeMethod(builder, method, typeDatas, out var overrideObject))
                 {
-                    var returnType = method.ReturnType;
-                    
-                    var returnTypeData = builder.GetTypeData(returnType, typeDatas);
-                    DependentTypes.UnionWith(returnTypeData.GetPublicTypes());
-                    var parameterInfos = method.GetParameters();
-                    if (!isEquatable && method.Name == "Equals" && returnType == typeof(bool) && parameterInfos.Length == 1 && parameterInfos[0].ParameterType == typeof(object))
+                    var generation = builder.MethodResolver?.Invoke(Type, method) ?? MemberGeneration.Full;
+                    if (generation != MemberGeneration.None)
                     {
-                        isEquatable = true;
-                    }
-                    var parameters = new List<ParameterData>();
-                    if (parameterInfos?.Length > 0)
-                    {
-                        foreach (var parameter in parameterInfos)
-                        {
-                            var parameterType = parameter.ParameterType;
-                            var parameterTypeData = builder.GetTypeData(parameterType, typeDatas);
-                            DependentTypes.UnionWith(parameterTypeData.GetPublicTypes());
-                            parameters.Add(new ParameterData(parameterTypeData, parameter.Name, parameter.IsOut));
-                        }
-                    }
+                        var returnType = method.ReturnType;
 
-                    var methodData = new MethodData(method.Name, returnTypeData, parameters, overrideObject);
-                    foreach (var @interface in Interfaces)
-                    {
-                        if (@interface.Methods.Any(p => p.Equals(methodData)))
+                        var returnTypeData = builder.GetTypeData(returnType, typeDatas);
+                        DependentTypes.UnionWith(returnTypeData.GetPublicTypes());
+                        var parameterInfos = method.GetParameters();
+                        if (!isEquatable && method.Name == "Equals" && returnType == typeof(bool) && parameterInfos.Length == 1 && parameterInfos[0].ParameterType == typeof(object))
                         {
-                            methodData.DeclaringInterfaceType = @interface;
+                            isEquatable = true;
                         }
+                        var parameters = new List<ParameterData>();
+                        if (parameterInfos?.Length > 0)
+                        {
+                            foreach (var parameter in parameterInfos)
+                            {
+                                var parameterType = parameter.ParameterType;
+                                var parameterTypeData = builder.GetTypeData(parameterType, typeDatas);
+                                DependentTypes.UnionWith(parameterTypeData.GetPublicTypes());
+                                parameters.Add(new ParameterData(parameterTypeData, parameter.Name, parameter.IsOut));
+                            }
+                        }
+
+                        var methodData = new MethodData(method.Name, returnTypeData, parameters, overrideObject, generation);
+                        foreach (var @interface in Interfaces)
+                        {
+                            if (@interface.Methods.Any(p => p.Equals(methodData)))
+                            {
+                                methodData.DeclaringInterfaceType = @interface;
+                            }
+                        }
+                        Methods.Add(methodData);
                     }
-                    Methods.Add(methodData);
                 }
             }
 
@@ -192,37 +200,41 @@ namespace WrapIt
             var eventInfos = Type.GetEvents(bindingFlags);
             foreach (var @event in eventInfos)
             {
-                if (IncludeMethod(builder, @event.AddMethod, typeDatas, out _) && IncludeMethod(builder, @event.RemoveMethod, typeDatas, out _) && builder.EventResolver?.Invoke(Type, @event) != false)
+                if (IncludeMethod(builder, @event.AddMethod, typeDatas, out _) && IncludeMethod(builder, @event.RemoveMethod, typeDatas, out _))
                 {
-                    var eventHandlerType = @event.EventHandlerType;
-                    var eventHandlerTypeData = (DelegateData)builder.GetTypeData(eventHandlerType, typeDatas);
-                    DependentTypes.UnionWith(eventHandlerTypeData.GetPublicTypes());
-                    var invokeMethod = eventHandlerType.GetMethod("Invoke");
-                    var returnType = invokeMethod.ReturnType;
-                    var returnTypeData = builder.GetTypeData(returnType, typeDatas);
-                    DependentTypes.UnionWith(returnTypeData.GetPublicTypes());
-                    var parameterInfos = invokeMethod.GetParameters();
-                    var parameters = new List<ParameterData>();
-                    if (parameterInfos?.Length > 0)
+                    var generation = builder.EventResolver?.Invoke(Type, @event) ?? MemberGeneration.Full;
+                    if (generation != MemberGeneration.None)
                     {
-                        foreach (var parameter in parameterInfos)
+                        var eventHandlerType = @event.EventHandlerType;
+                        var eventHandlerTypeData = (DelegateData)builder.GetTypeData(eventHandlerType, typeDatas);
+                        DependentTypes.UnionWith(eventHandlerTypeData.GetPublicTypes());
+                        var invokeMethod = eventHandlerType.GetMethod("Invoke");
+                        var returnType = invokeMethod.ReturnType;
+                        var returnTypeData = builder.GetTypeData(returnType, typeDatas);
+                        DependentTypes.UnionWith(returnTypeData.GetPublicTypes());
+                        var parameterInfos = invokeMethod.GetParameters();
+                        var parameters = new List<ParameterData>();
+                        if (parameterInfos?.Length > 0)
                         {
-                            var parameterType = parameter.ParameterType;
-                            var parameterTypeData = builder.GetTypeData(parameterType, typeDatas);
-                            DependentTypes.UnionWith(parameterTypeData.GetPublicTypes());
-                            parameters.Add(new ParameterData(parameterTypeData, parameter.Name, parameter.IsOut));
+                            foreach (var parameter in parameterInfos)
+                            {
+                                var parameterType = parameter.ParameterType;
+                                var parameterTypeData = builder.GetTypeData(parameterType, typeDatas);
+                                DependentTypes.UnionWith(parameterTypeData.GetPublicTypes());
+                                parameters.Add(new ParameterData(parameterTypeData, parameter.Name, parameter.IsOut));
+                            }
                         }
-                    }
 
-                    var eventData = new EventData(eventHandlerTypeData, @event.Name);
-                    foreach (var @interface in Interfaces)
-                    {
-                        if (@interface.Events.Any(e => e.Equals(eventData)))
+                        var eventData = new EventData(eventHandlerTypeData, @event.Name, generation);
+                        foreach (var @interface in Interfaces)
                         {
-                            eventData.DeclaringInterfaceType = @interface;
+                            if (@interface.Events.Any(e => e.Equals(eventData)))
+                            {
+                                eventData.DeclaringInterfaceType = @interface;
+                            }
                         }
+                        Events.Add(eventData);
                     }
-                    Events.Add(eventData);
                 }
             }
 

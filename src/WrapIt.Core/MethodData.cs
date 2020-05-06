@@ -14,14 +14,17 @@ namespace WrapIt
 
         public bool OverrideObject { get; }
 
+        public MemberGeneration Generation { get; }
+
         public TypeData? DeclaringInterfaceType { get; set; }
 
-        public MethodData(string name, TypeData returnType, List<ParameterData> parameters, bool overrideObject)
+        public MethodData(string name, TypeData returnType, List<ParameterData> parameters, bool overrideObject, MemberGeneration generation)
         {
             Name = name;
             ReturnType = returnType;
             Parameters = parameters;
             OverrideObject = overrideObject;
+            Generation = generation;
         }
 
         public override int GetHashCode() => Name.GetHashCode() ^ ReturnType.GetHashCode();

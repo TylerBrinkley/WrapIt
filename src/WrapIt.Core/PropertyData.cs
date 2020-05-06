@@ -16,15 +16,18 @@ namespace WrapIt
 
         public List<ParameterData> Parameters { get; }
 
+        public MemberGeneration Generation { get; }
+
         public TypeData? DeclaringInterfaceType { get; set; }
 
-        public PropertyData(TypeData type, string name, bool hasGetter, bool hasSetter, List<ParameterData> parameters)
+        public PropertyData(TypeData type, string name, bool hasGetter, bool hasSetter, List<ParameterData> parameters, MemberGeneration generation)
         {
             Type = type;
             Name = name;
             HasGetter = hasGetter;
             HasSetter = hasSetter;
             Parameters = parameters;
+            Generation = generation;
         }
 
         public override int GetHashCode() => Name.GetHashCode() ^ Type.GetHashCode();

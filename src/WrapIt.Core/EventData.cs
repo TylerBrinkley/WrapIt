@@ -8,12 +8,15 @@ namespace WrapIt
 
         public string Name { get; }
 
+        public MemberGeneration Generation { get; }
+
         public TypeData? DeclaringInterfaceType { get; set; }
 
-        public EventData(DelegateData type, string name)
+        public EventData(DelegateData type, string name, MemberGeneration generation)
         {
             Type = type;
             Name = name;
+            Generation = generation;
         }
 
         public override int GetHashCode() => Name.GetHashCode() ^ Type.GetHashCode();

@@ -37,11 +37,11 @@ namespace WrapIt
         /// </summary>
         public Func<string, string, string>? EnumFullNameFormat { get; set; }
 
-        public Func<Type, PropertyInfo, bool>? PropertyResolver { get; set; }
+        public Func<Type, PropertyInfo, MemberGeneration>? PropertyResolver { get; set; }
 
-        public Func<Type, MethodInfo, bool>? MethodResolver { get; set; }
+        public Func<Type, MethodInfo, MemberGeneration>? MethodResolver { get; set; }
 
-        public Func<Type, EventInfo, bool>? EventResolver { get; set; }
+        public Func<Type, EventInfo, MemberGeneration>? EventResolver { get; set; }
 
         public Func<Type, Type, bool>? InterfaceResolver { get; set; }
 
@@ -53,6 +53,8 @@ namespace WrapIt
         /// Defaults to <c>true</c>.
         /// </summary>
         public bool BuildCollectionWrappersAsNecessary { get; set; } = true;
+
+        public string DefaultMemberGenerationCompilerFlag { get; set; } = "WRAP_IT_DEFAULT_MEMBER_GENERATION";
 
         public async Task BuildAsync(Func<Type, string, CancellationToken, Task<TextWriter>> writerProvider, CancellationToken cancellationToken = default)
         {
