@@ -47,7 +47,7 @@ namespace WrapIt
 
         public Func<Type, bool>? TypeResolver { get; set; }
 
-        public decimal MinCSharpVersion { get; set; } = 7M;
+        public decimal MinCSharpVersion { get; set; } = decimal.MaxValue;
 
         /// <summary>
         /// Defaults to <c>true</c>.
@@ -119,6 +119,10 @@ namespace WrapIt
                         var interfaceFullName = InterfaceFullNameFormat?.Invoke(typeNamespace, typeName) ?? $"{typeNamespace}.I{typeName}";
                         typeData = new ClassData(type, GetTypeName(classFullName), GetTypeName(interfaceFullName), TypeBuildStatus.NotYetBuilt, baseTypeData);
                         typeDatas.Add(typeData);
+                        if (baseTypeData != null)
+                        {
+                            baseTypeData.DirectDerivedTypes.Add((ClassData)typeData);
+                        }
                         if (!type.IsSealed)
                         {
                             foreach (var assembly in _assembliesWithTypesToWrap)

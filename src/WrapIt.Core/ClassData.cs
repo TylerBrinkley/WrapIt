@@ -16,6 +16,8 @@ namespace WrapIt
 
         public ClassData? BaseType { get; }
 
+        public List<ClassData> DirectDerivedTypes { get; } = new List<ClassData>();
+
         public ClassData(Type type, TypeName className, TypeName interfaceName, TypeBuildStatus buildStatus, ClassData? baseType)
             : base(type, className, interfaceName, buildStatus)
         {
@@ -60,6 +62,11 @@ namespace WrapIt
             foreach (var @interface in Interfaces)
             {
                 interfaceUsingDirectives.UnionWith(@interface.InterfaceName.GetNamespaces());
+            }
+
+            foreach (var derivedType in DirectDerivedTypes)
+            {
+                classUsingDirectives.UnionWith(derivedType.ClassName.GetNamespaces());
             }
 
             classUsingDirectives.UnionWith(interfaceUsingDirectives);
@@ -196,7 +203,63 @@ namespace WrapIt
                 await writer.WriteLineAsync("    {").ConfigureAwait(false);
 
                 var typeFullName = Type.FullName;
-                await writer.WriteLineAsync($"        public static implicit operator {ClassName}({typeFullName} {ObjectParamName}) => {ObjectParamName} != null ? new {ClassName}({ObjectParamName}) : null;").ConfigureAwait(false);
+                if (DirectDerivedTypes.Count == 0)
+                {
+                    await writer.WriteLineAsync($"        public static implicit operator {ClassName}({typeFullName} {ObjectParamName}) => {ObjectParamName} != null ? new {ClassName}({ObjectParamName}) : null;").ConfigureAwait(false);
+                }
+                else
+                {
+                    if (builder.MinCSharpVersion >= 8M)
+                    {
+                        await writer.WriteLineAsync($"        public static implicit operator {ClassName}({typeFullName} {ObjectParamName}) => {ObjectParamName} switch").ConfigureAwait(false);
+                        await writer.WriteLineAsync("        {").ConfigureAwait(false);
+                        await writer.WriteLineAsync($"            null => null,").ConfigureAwait(false);
+                        for (var i = 0; i < DirectDerivedTypes.Count; ++i)
+                        {
+                            var derivedType = DirectDerivedTypes[i];
+                            await writer.WriteLineAsync($"            {derivedType.Type.FullName} v{i} => ({derivedType.ClassName})v{i},").ConfigureAwait(false);
+                        }
+                        await writer.WriteLineAsync($"            _ => new {ClassName}({ObjectParamName})").ConfigureAwait(false);
+                        await writer.WriteLineAsync("        };").ConfigureAwait(false);
+                    }
+                    else if (builder.MinCSharpVersion >= 7M)
+                    {
+                        await writer.WriteLineAsync($"        public static implicit operator {ClassName}({typeFullName} {ObjectParamName})").ConfigureAwait(false);
+                        await writer.WriteLineAsync("        {").ConfigureAwait(false);
+                        await writer.WriteLineAsync($"            switch ({ObjectParamName})").ConfigureAwait(false);
+                        await writer.WriteLineAsync("            {").ConfigureAwait(false);
+                        await writer.WriteLineAsync("                case null:").ConfigureAwait(false);
+                        await writer.WriteLineAsync("                    return null;").ConfigureAwait(false);
+                        for (var i = 0; i < DirectDerivedTypes.Count; ++i)
+                        {
+                            var derivedType = DirectDerivedTypes[i];
+                            await writer.WriteLineAsync($"                case {derivedType.Type.FullName} v{i}:").ConfigureAwait(false);
+                            await writer.WriteLineAsync($"                    return ({derivedType.ClassName})v{i};").ConfigureAwait(false);
+                        }
+                        await writer.WriteLineAsync("                default:").ConfigureAwait(false);
+                        await writer.WriteLineAsync($"                    return new {ClassName}({ObjectParamName});").ConfigureAwait(false);
+                        await writer.WriteLineAsync("            }").ConfigureAwait(false);
+                        await writer.WriteLineAsync("        }").ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        await writer.WriteLineAsync($"        public static implicit operator {ClassName}({typeFullName} {ObjectParamName})").ConfigureAwait(false);
+                        await writer.WriteLineAsync("        {").ConfigureAwait(false);
+                        await writer.WriteLineAsync($"            if ({ObjectParamName} == null)").ConfigureAwait(false);
+                        await writer.WriteLineAsync("            {").ConfigureAwait(false);
+                        await writer.WriteLineAsync("                return null;").ConfigureAwait(false);
+                        await writer.WriteLineAsync("            }").ConfigureAwait(false);
+                        foreach (var derivedType in DirectDerivedTypes)
+                        {
+                            await writer.WriteLineAsync($"            if ({ObjectParamName} is {derivedType.Type.FullName})").ConfigureAwait(false);
+                            await writer.WriteLineAsync("            {").ConfigureAwait(false);
+                            await writer.WriteLineAsync($"                return ({derivedType.ClassName})({derivedType.Type.FullName}){ObjectParamName};").ConfigureAwait(false);
+                            await writer.WriteLineAsync("            }").ConfigureAwait(false);
+                        }
+                        await writer.WriteLineAsync($"            return new {ClassName}({ObjectParamName});").ConfigureAwait(false);
+                        await writer.WriteLineAsync("        }").ConfigureAwait(false);
+                    }
+                }
                 await writer.WriteLineAsync().ConfigureAwait(false);
                 await writer.WriteLineAsync($"        public static implicit operator {typeFullName}({ClassName} {ObjectParamName}) => {ObjectParamName}?.{ObjectName};").ConfigureAwait(false);
                 await writer.WriteLineAsync().ConfigureAwait(false);

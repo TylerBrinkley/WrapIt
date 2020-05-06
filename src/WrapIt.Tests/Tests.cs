@@ -54,7 +54,12 @@ namespace Company
 {
     public partial class BaseWrapper : IBase
     {
-        public static implicit operator BaseWrapper(Company.Base @object) => @object != null ? new BaseWrapper(@object) : null;
+        public static implicit operator BaseWrapper(Company.Base @object) => @object switch
+        {
+            null => null,
+            Company.Derived v0 => (DerivedWrapper)v0,
+            _ => new BaseWrapper(@object)
+        };
 
         public static implicit operator Company.Base(BaseWrapper @object) => @object?.Object;
 
