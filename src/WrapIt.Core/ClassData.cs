@@ -336,7 +336,7 @@ namespace WrapIt
                     await writer.WriteLineAsync("            if (value != null)").ConfigureAwait(false);
                     await writer.WriteLineAsync("            {").ConfigureAwait(false);
                     const string handlerName = "handler";
-                    await writer.WriteLineAsync($"                {@event.Type.ClassName} {handlerName} = ({string.Join(", ", @event.Type.Parameters.Select(p => p.GetAsArgument()))}) => value({string.Join(", ", @event.Type.Parameters.Select((p, i) => i == 0 && p.Type.Type == typeof(object) ? $"TryWrap({p.Name})" : p.Type.GetCodeToConvertToClassType(p.Name)))});").ConfigureAwait(false);
+                    await writer.WriteLineAsync($"                {@event.Type.ClassName} {handlerName} = ({string.Join(", ", @event.Type.Parameters.Select(p => p.GetAsArgument()))}) => value({string.Join(", ", @event.Type.Parameters.Select((p, i) => i == 0 && p.Type.Type == typeof(object) ? $"{p.Name} is {typeFullName} {(builder.MinCSharpVersion >= 7M ? $"o ? ({ClassName})o" : $"? ({ClassName})({typeFullName}){p.Name}")} : {p.Name}" : p.Type.GetCodeToConvertToClassType(p.Name)))});").ConfigureAwait(false);
                     await writer.WriteLineAsync("                if (toAdd)").ConfigureAwait(false);
                     await writer.WriteLineAsync("                {").ConfigureAwait(false);
                     await writer.WriteLineAsync($"                    {ObjectName}.{@event.Name} += {handlerName};").ConfigureAwait(false);
@@ -347,13 +347,6 @@ namespace WrapIt
                     await writer.WriteLineAsync("                }").ConfigureAwait(false);
                     await writer.WriteLineAsync("            }").ConfigureAwait(false);
                     await writer.WriteLineAsync("        }").ConfigureAwait(false);
-                    await writer.WriteLineAsync().ConfigureAwait(false);
-                }
-
-                var lowestTypeWithEvents = GetLowestTypeWithEvents();
-                if (lowestTypeWithEvents != null)
-                {
-                    await writer.WriteLineAsync($"        protected {(lowestTypeWithEvents.Equals(this) ? "virtual" : "override")} object TryWrap(object obj) => obj is {typeFullName} {(builder.MinCSharpVersion >= 7M ? $"o ? ({ClassName})o" : $"? ({ClassName})({typeFullName})obj")} : obj;");
                     await writer.WriteLineAsync().ConfigureAwait(false);
                 }
 
@@ -475,8 +468,6 @@ namespace WrapIt
         }
 
         private bool HasInterface(InterfaceData @interface) => Interfaces.Any(i => i.Equals(@interface)) || BaseType?.HasInterface(@interface) == true;
-
-        private ClassData? GetLowestTypeWithEvents() => BaseType?.GetLowestTypeWithEvents() ?? (Events.Count > 0 ? this : null);
 
         private IEnumerable<MethodData> GetAllMethods() => Methods.Concat(BaseType?.GetAllMethods() ?? Enumerable.Empty<MethodData>());
     }
