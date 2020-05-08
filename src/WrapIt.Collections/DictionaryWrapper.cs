@@ -116,7 +116,7 @@ namespace WrapIt.Collections
 
             public ICollection<TKey> Keys => _dictionary.Keys;
 
-            public CollectionWrapper<TValue, TValueWrapped, TValueInterface> Values => new CollectionWrapper<TValue, TValueWrapped, TValueInterface>(_dictionary.Values);
+            public CollectionWrapper<TValue, TValueWrapped, TValueInterface> Values => CollectionWrapper<TValue, TValueWrapped, TValueInterface>.Create(_dictionary.Values);
 
             ICollection<TValueWrapped> IDictionary<TKey, TValueWrapped>.Values => throw new NotSupportedException();
 
@@ -175,7 +175,7 @@ namespace WrapIt.Collections
 
             public ICollection<TKey> Keys => _dictionary.Keys;
 
-            public CollectionWrapper<TValue, TValueWrapped, TValueInterface> Values => new CollectionWrapper<TValue, TValueWrapped, TValueInterface>(_dictionary.Values);
+            public CollectionWrapper<TValue, TValueWrapped, TValueInterface> Values => CollectionWrapper<TValue, TValueWrapped, TValueInterface>.Create(_dictionary.Values);
 
             ICollection<TValueWrapped> IDictionary<TKey, TValueWrapped>.Values => throw new NotSupportedException();
 

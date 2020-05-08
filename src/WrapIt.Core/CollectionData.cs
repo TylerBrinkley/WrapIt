@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 
 namespace WrapIt
 {
-    internal class EnumerableData : InterfaceData
+    internal class CollectionData : InterfaceData
     {
         public TypeData ElementType { get; }
 
-        public EnumerableData(Type type, TypeName className, TypeName interfaceName, TypeData elementType)
+        public CollectionData(Type type, TypeName className, TypeName interfaceName, TypeData elementType)
             : base(type, className, interfaceName, TypeBuildStatus.NotYetBuilt)
         {
             ElementType = elementType;
@@ -31,7 +31,7 @@ namespace WrapIt
             }
         }
 
-        public override string GetCodeToConvertToActualType(string parameterName) => ClassName != InterfaceName ? $"{parameterName}?.ToEnumerable()" : base.GetCodeToConvertToActualType(parameterName);
+        public override string GetCodeToConvertToActualType(string parameterName) => ClassName != InterfaceName ? $"{parameterName}?.ToCollection()" : base.GetCodeToConvertToActualType(parameterName);
 
         public override string GetCodeToConvertToClassType(string parameterName) => ClassName != InterfaceName ? $"{ClassName}.Create({parameterName})" : base.GetCodeToConvertToClassType(parameterName);
 

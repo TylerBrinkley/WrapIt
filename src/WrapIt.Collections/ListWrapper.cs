@@ -29,6 +29,12 @@ namespace WrapIt.Collections
 
         public List<T> ToList() => InternalWrapper.ToList();
 
+        public void Add(TWrapped item) => InternalWrapper.Add(item);
+
+        public void Clear() => InternalWrapper.Clear();
+
+        public bool Remove(TWrapped item) => InternalWrapper.Remove(item);
+
         public void Insert(int index, TWrapped item) => InternalWrapper.Insert(index, item);
 
         void IList<TInterface>.Insert(int index, TInterface item) => Insert(index, (TWrapped)item);
@@ -40,46 +46,40 @@ namespace WrapIt.Collections
             List<T> ToList();
         }
 
-        private sealed class StandardListWrapperInternal : StandardCollectionWrapperInternal, IListWrapperInternal
+        private sealed class StandardListWrapperInternal : StandardCollectionWrapperInternal<IList<T>>, IListWrapperInternal
         {
-            private readonly IList<T> _list;
+            public TWrapped this[int index] { get => Conversion<T, TWrapped>.Wrap(Collection[index]); set => Collection[index] = Conversion<T, TWrapped>.Unwrap(value); }
 
-            public TWrapped this[int index] { get => Conversion<T, TWrapped>.Wrap(_list[index]); set => _list[index] = Conversion<T, TWrapped>.Unwrap(value); }
-
-            public StandardListWrapperInternal(IList<T> list)
-                : base(list)
+            public StandardListWrapperInternal(IList<T> collection)
+                : base(collection)
             {
-                _list = list;
             }
 
-            public List<T> ToList() => _list as List<T> ?? _list.ToList();
+            public List<T> ToList() => Collection as List<T> ?? Collection.ToList();
 
-            public int IndexOf(TWrapped item) => _list.IndexOf(Conversion<T, TWrapped>.Unwrap(item));
+            public int IndexOf(TWrapped item) => Collection.IndexOf(Conversion<T, TWrapped>.Unwrap(item));
 
-            public void Insert(int index, TWrapped item) => _list.Insert(index, Conversion<T, TWrapped>.Unwrap(item));
+            public void Insert(int index, TWrapped item) => Collection.Insert(index, Conversion<T, TWrapped>.Unwrap(item));
 
-            public void RemoveAt(int index) => _list.RemoveAt(index);
+            public void RemoveAt(int index) => Collection.RemoveAt(index);
         }
 
-        private sealed class CastedListWrapperInternal : CastedCollectionWrapperInternal, IListWrapperInternal
+        private sealed class CastedListWrapperInternal : CastedCollectionWrapperInternal<IList<TInterface>>, IListWrapperInternal
         {
-            private readonly IList<TInterface> _list;
+            public TWrapped this[int index] { get => (TWrapped)Collection[index]; set => Collection[index] = value; }
 
-            public TWrapped this[int index] { get => (TWrapped)_list[index]; set => _list[index] = value; }
-
-            public CastedListWrapperInternal(IList<TInterface> list)
-                : base(list)
+            public CastedListWrapperInternal(IList<TInterface> collection)
+                : base(collection)
             {
-                _list = list;
             }
 
             public List<T> ToList() => (List<T>)ToCollection();
 
-            public int IndexOf(TWrapped item) => _list.IndexOf(item);
+            public int IndexOf(TWrapped item) => Collection.IndexOf(item);
 
-            public void Insert(int index, TWrapped item) => _list.Insert(index, item);
+            public void Insert(int index, TWrapped item) => Collection.Insert(index, item);
 
-            public void RemoveAt(int index) => _list.RemoveAt(index);
+            public void RemoveAt(int index) => Collection.RemoveAt(index);
         }
     }
 }

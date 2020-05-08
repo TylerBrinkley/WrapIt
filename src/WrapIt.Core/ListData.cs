@@ -11,15 +11,9 @@ namespace WrapIt
     {
         public TypeData ElementType { get; }
 
-        public ListData(Type type, TypeName className, TypeName interfaceName, TypeData elementType, WrapperBuilder builder, HashSet<TypeData> typeDatas)
+        public ListData(Type type, TypeName className, TypeName interfaceName, TypeData elementType)
             : base(type, className, interfaceName, TypeBuildStatus.NotYetBuilt)
         {
-            var listWrapperData = builder.GetTypeData(typeof(ListWrapperData), typeDatas);
-            if (listWrapperData.BuildStatus == TypeBuildStatus.NotBuilding)
-            {
-                listWrapperData.BuildStatus = TypeBuildStatus.NotYetBuilt;
-            }
-            DependentTypes.UnionWith(listWrapperData.GetPublicTypes());
             ElementType = elementType;
             DependentTypes.UnionWith(elementType.GetPublicTypes());
         }

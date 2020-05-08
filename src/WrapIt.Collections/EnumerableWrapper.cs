@@ -14,19 +14,31 @@ namespace WrapIt.Collections
     public class EnumerableWrapper<T, TWrapped, TInterface> : IEnumerable<TInterface>
         where TWrapped : TInterface
     {
-        public static EnumerableWrapper<T, TWrapped, TInterface> Create(IEnumerable<T> enumerable) => enumerable != null ? new EnumerableWrapper<T, TWrapped, TInterface>(enumerable) : null;
+        public static EnumerableWrapper<T, TWrapped, TInterface> Create(IEnumerable<T> enumerable) => enumerable switch
+        {
+            null => null,
+            ICollection<T> v0 => CollectionWrapper<T, TWrapped, TInterface>.Create(v0),
+            IReadOnlyCollection<T> v1 => ReadOnlyCollectionWrapper<T, TWrapped, TInterface>.Create(v1),
+            _ => new EnumerableWrapper<T, TWrapped, TInterface>(enumerable)
+        };
 
-        public static EnumerableWrapper<T, TWrapped, TInterface> Create(IEnumerable<TInterface> enumerable) => enumerable != null ? new EnumerableWrapper<T, TWrapped, TInterface>(enumerable) : null;
+        public static EnumerableWrapper<T, TWrapped, TInterface> Create(IEnumerable<TInterface> enumerable) => enumerable switch
+        {
+            null => null,
+            ICollection<TInterface> v0 => CollectionWrapper<T, TWrapped, TInterface>.Create(v0),
+            IReadOnlyCollection<TInterface> v1 => ReadOnlyCollectionWrapper<T, TWrapped, TInterface>.Create(v1),
+            _ => new EnumerableWrapper<T, TWrapped, TInterface>(enumerable)
+        };
 
         internal IEnumerableWrapperInternal InternalWrapper { get; }
 
         public EnumerableWrapper(IEnumerable<T> enumerable)
-            : this(new StandardEnumerableWrapperInternal(enumerable ?? throw new ArgumentNullException(nameof(enumerable))))
+            : this(new StandardEnumerableWrapperInternal<IEnumerable<T>>(enumerable ?? throw new ArgumentNullException(nameof(enumerable))))
         {
         }
 
         public EnumerableWrapper(IEnumerable<TInterface> enumerable)
-            : this(new CastedEnumerableWrapperInternal(enumerable ?? throw new ArgumentNullException(nameof(enumerable))))
+            : this(new CastedEnumerableWrapperInternal<IEnumerable<TInterface>>(enumerable ?? throw new ArgumentNullException(nameof(enumerable))))
         {
         }
 
@@ -54,20 +66,21 @@ namespace WrapIt.Collections
             IEnumerable<T> ToEnumerable();
         }
 
-        internal class StandardEnumerableWrapperInternal : IEnumerableWrapperInternal
+        internal class StandardEnumerableWrapperInternal<TCollection> : IEnumerableWrapperInternal
+            where TCollection : IEnumerable<T>
         {
-            private readonly IEnumerable<T> _enumerable;
+            protected readonly TCollection Collection;
 
-            public StandardEnumerableWrapperInternal(IEnumerable<T> enumerable)
+            public StandardEnumerableWrapperInternal(TCollection enumerable)
             {
-                _enumerable = enumerable;
+                Collection = enumerable;
             }
 
-            public virtual IEnumerable<T> ToEnumerable() => _enumerable;
+            public virtual IEnumerable<T> ToEnumerable() => Collection;
 
             public IEnumerator<TWrapped> GetEnumerator()
             {
-                foreach (var item in _enumerable)
+                foreach (var item in Collection)
                 {
                     yield return Conversion<T, TWrapped>.Wrap(item);
                 }
@@ -76,19 +89,20 @@ namespace WrapIt.Collections
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         }
 
-        internal class CastedEnumerableWrapperInternal : IEnumerableWrapperInternal
+        internal class CastedEnumerableWrapperInternal<TCollection> : IEnumerableWrapperInternal
+            where TCollection : IEnumerable<TInterface>
         {
-            private readonly IEnumerable<TInterface> _enumerable;
+            protected readonly TCollection Collection;
 
-            public CastedEnumerableWrapperInternal(IEnumerable<TInterface> enumerable)
+            public CastedEnumerableWrapperInternal(TCollection collection)
             {
-                _enumerable = enumerable;
+                Collection = collection;
             }
 
             public virtual IEnumerable<T> ToEnumerable()
             {
                 var list = new List<T>();
-                foreach (var item in _enumerable)
+                foreach (var item in Collection)
                 {
                     list.Add(Conversion<T, TWrapped>.Unwrap((TWrapped)item));
                 }
@@ -97,7 +111,7 @@ namespace WrapIt.Collections
 
             public IEnumerator<TWrapped> GetEnumerator()
             {
-                foreach (var item in _enumerable)
+                foreach (var item in Collection)
                 {
                     yield return (TWrapped)item;
                 }

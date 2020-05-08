@@ -6,9 +6,23 @@ namespace WrapIt.Collections
     public class CollectionWrapper<T, TWrapped, TInterface> : EnumerableWrapper<T, TWrapped, TInterface>, ICollection<TInterface>, IReadOnlyCollection<TInterface>
         where TWrapped : TInterface
     {
-        public static CollectionWrapper<T, TWrapped, TInterface> Create(ICollection<T> collection) => collection != null ? new CollectionWrapper<T, TWrapped, TInterface>(collection) : null;
+        public static CollectionWrapper<T, TWrapped, TInterface> Create(ICollection<T> collection) => collection switch
+        {
+            null => null,
+            T[] v0 => ArrayWrapper<T, TWrapped, TInterface>.Create(v0),
+            IList<T> v1 => ListWrapper<T, TWrapped, TInterface>.Create(v1),
+            ISet<T> v2 => SetWrapper<T, TWrapped, TInterface>.Create(v2),
+            _ => new CollectionWrapper<T, TWrapped, TInterface>(collection)
+        };
 
-        public static CollectionWrapper<T, TWrapped, TInterface> Create(ICollection<TInterface> collection) => collection != null ? new CollectionWrapper<T, TWrapped, TInterface>(collection) : null;
+        public static CollectionWrapper<T, TWrapped, TInterface> Create(ICollection<TInterface> collection) => collection switch
+        {
+            null => null,
+            TInterface[] v0 => ArrayWrapper<T, TWrapped, TInterface>.Create(v0),
+            IList<TInterface> v1 => ListWrapper<T, TWrapped, TInterface>.Create(v1),
+            ISet<TInterface> v2 => SetWrapper<T, TWrapped, TInterface>.Create(v2),
+            _ => new CollectionWrapper<T, TWrapped, TInterface>(collection)
+        };
 
         internal new ICollectionWrapperInternal InternalWrapper => (ICollectionWrapperInternal)base.InternalWrapper;
 
@@ -17,12 +31,12 @@ namespace WrapIt.Collections
         bool ICollection<TInterface>.IsReadOnly => InternalWrapper.IsReadOnly;
 
         public CollectionWrapper(ICollection<T> collection)
-            : base(new StandardCollectionWrapperInternal(collection ?? throw new ArgumentNullException(nameof(collection))))
+            : base(new StandardCollectionWrapperInternal<ICollection<T>>(collection ?? throw new ArgumentNullException(nameof(collection))))
         {
         }
 
         public CollectionWrapper(ICollection<TInterface> collection)
-            : base(new CastedCollectionWrapperInternal(collection ?? throw new ArgumentNullException(nameof(collection))))
+            : base(new CastedCollectionWrapperInternal<ICollection<TInterface>>(collection ?? throw new ArgumentNullException(nameof(collection))))
         {
         }
 
@@ -69,66 +83,54 @@ namespace WrapIt.Collections
             ICollection<T> ToCollection();
         }
 
-        internal class StandardCollectionWrapperInternal : StandardEnumerableWrapperInternal, ICollectionWrapperInternal
+        internal class StandardCollectionWrapperInternal<TCollection> : StandardEnumerableWrapperInternal<TCollection>, ICollectionWrapperInternal
+            where TCollection : ICollection<T>
         {
-            private readonly ICollection<T> _collection;
+            public int Count => Collection.Count;
 
-            public int Count => _collection.Count;
+            public virtual bool IsReadOnly => Collection.IsReadOnly;
 
-            public virtual bool IsReadOnly => _collection.IsReadOnly;
-
-            public StandardCollectionWrapperInternal(ICollection<T> collection)
+            public StandardCollectionWrapperInternal(TCollection collection)
                 : base(collection)
             {
-                _collection = collection;
             }
 
-            public virtual ICollection<T> ToCollection() => _collection;
+            public virtual ICollection<T> ToCollection() => Collection;
 
-            public bool Contains(TWrapped item) => _collection.Contains(Conversion<T, TWrapped>.Unwrap(item));
+            public bool Contains(TWrapped item) => Collection.Contains(Conversion<T, TWrapped>.Unwrap(item));
 
-            public virtual void Add(TWrapped item) => _collection.Add(Conversion<T, TWrapped>.Unwrap(item));
+            public virtual void Add(TWrapped item) => Collection.Add(Conversion<T, TWrapped>.Unwrap(item));
 
-            public virtual void Clear() => _collection.Clear();
+            public virtual void Clear() => Collection.Clear();
 
-            public virtual bool Remove(TWrapped item) => _collection.Remove(Conversion<T, TWrapped>.Unwrap(item));
+            public virtual bool Remove(TWrapped item) => Collection.Remove(Conversion<T, TWrapped>.Unwrap(item));
 
             void ICollection<TWrapped>.CopyTo(TWrapped[] array, int arrayIndex) => throw new NotSupportedException();
         }
 
-        internal class CastedCollectionWrapperInternal : CastedEnumerableWrapperInternal, ICollectionWrapperInternal
+        internal class CastedCollectionWrapperInternal<TCollection> : CastedEnumerableWrapperInternal<TCollection>, ICollectionWrapperInternal
+            where TCollection : ICollection<TInterface>
         {
-            private readonly ICollection<TInterface> _collection;
+            public int Count => Collection.Count;
 
-            public int Count => _collection.Count;
+            public virtual bool IsReadOnly => Collection.IsReadOnly;
 
-            public virtual bool IsReadOnly => _collection.IsReadOnly;
-
-            public CastedCollectionWrapperInternal(ICollection<TInterface> collection)
+            public CastedCollectionWrapperInternal(TCollection collection)
                 : base(collection)
             {
-                _collection = collection;
             }
 
             public override IEnumerable<T> ToEnumerable() => ToCollection();
 
-            public virtual ICollection<T> ToCollection()
-            {
-                var list = new List<T>(Count);
-                foreach (var item in _collection)
-                {
-                    list.Add(Conversion<T, TWrapped>.Unwrap((TWrapped)item));
-                }
-                return list;
-            }
+            public virtual ICollection<T> ToCollection() => (ICollection<T>)base.ToEnumerable();
 
-            public bool Contains(TWrapped item) => _collection.Contains(item);
+            public bool Contains(TWrapped item) => Collection.Contains(item);
 
-            public virtual void Add(TWrapped item) => _collection.Add(item);
+            public virtual void Add(TWrapped item) => Collection.Add(item);
 
-            public virtual void Clear() => _collection.Clear();
+            public virtual void Clear() => Collection.Clear();
 
-            public virtual bool Remove(TWrapped item) => _collection.Remove(item);
+            public virtual bool Remove(TWrapped item) => Collection.Remove(item);
 
             void ICollection<TWrapped>.CopyTo(TWrapped[] array, int arrayIndex) => throw new NotSupportedException();
         }

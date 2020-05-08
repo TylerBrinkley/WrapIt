@@ -14,12 +14,6 @@ namespace WrapIt
         public ArrayData(Type type, TypeName className, TypeName interfaceName, TypeData elementType, WrapperBuilder builder, HashSet<TypeData> typeDatas)
             : base(type, className, interfaceName, TypeBuildStatus.NotYetBuilt)
         {
-            var arrayWrapperData = builder.GetTypeData(typeof(ArrayWrapperData), typeDatas);
-            if (arrayWrapperData.BuildStatus == TypeBuildStatus.NotBuilding)
-            {
-                arrayWrapperData.BuildStatus = TypeBuildStatus.NotYetBuilt;
-            }
-            DependentTypes.UnionWith(arrayWrapperData.GetPublicTypes());
             ElementType = elementType;
             DependentTypes.UnionWith(elementType.GetPublicTypes());
         }

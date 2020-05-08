@@ -13,15 +13,9 @@ namespace WrapIt
 
         public TypeData ValueType { get; }
 
-        public DictionaryData(Type type, TypeName className, TypeName interfaceName, TypeData keyType, TypeData valueType, WrapperBuilder builder, HashSet<TypeData> typeDatas)
+        public DictionaryData(Type type, TypeName className, TypeName interfaceName, TypeData keyType, TypeData valueType)
             : base(type, className, interfaceName, TypeBuildStatus.NotYetBuilt)
         {
-            var dictionaryWrapperData = builder.GetTypeData(typeof(DictionaryWrapperData), typeDatas);
-            if (dictionaryWrapperData.BuildStatus == TypeBuildStatus.NotBuilding)
-            {
-                dictionaryWrapperData.BuildStatus = TypeBuildStatus.NotYetBuilt;
-            }
-            DependentTypes.UnionWith(dictionaryWrapperData.GetPublicTypes());
             KeyType = keyType;
             DependentTypes.UnionWith(keyType.GetPublicTypes());
             ValueType = valueType;

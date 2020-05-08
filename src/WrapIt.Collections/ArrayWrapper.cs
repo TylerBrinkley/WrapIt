@@ -33,39 +33,33 @@ namespace WrapIt.Collections
             T[] ToArray();
         }
 
-        private sealed class StandardArrayWrapperInternal : StandardCollectionWrapperInternal, IArrayWrapperInternal
+        private sealed class StandardArrayWrapperInternal : StandardCollectionWrapperInternal<T[]>, IArrayWrapperInternal
         {
-            private readonly T[] _array;
+            public TWrapped this[int index] { get => Conversion<T, TWrapped>.Wrap(Collection[index]); set => Collection[index] = Conversion<T, TWrapped>.Unwrap(value); }
 
-            public TWrapped this[int index] { get => Conversion<T, TWrapped>.Wrap(_array[index]); set => _array[index] = Conversion<T, TWrapped>.Unwrap(value); }
-
-            public StandardArrayWrapperInternal(T[] array)
-                : base(array)
+            public StandardArrayWrapperInternal(T[] collection)
+                : base(collection)
             {
-                _array = array;
             }
 
-            public T[] ToArray() => _array;
+            public T[] ToArray() => Collection;
 
-            public int IndexOf(TWrapped item) => Array.IndexOf(_array, Conversion<T, TWrapped>.Unwrap(item));
+            public int IndexOf(TWrapped item) => Array.IndexOf(Collection, Conversion<T, TWrapped>.Unwrap(item));
 
             public void Insert(int index, TWrapped item) => throw new NotSupportedException();
 
             public void RemoveAt(int index) => throw new NotSupportedException();
         }
 
-        private sealed class CastedArrayWrapperInternal : CastedCollectionWrapperInternal, IArrayWrapperInternal
+        private sealed class CastedArrayWrapperInternal : CastedCollectionWrapperInternal<IList<TInterface>>, IArrayWrapperInternal
         {
-            private readonly IList<TInterface> _list;
-
-            public TWrapped this[int index] { get => (TWrapped)_list[index]; set => _list[index] = value; }
+            public TWrapped this[int index] { get => (TWrapped)Collection[index]; set => Collection[index] = value; }
 
             public override bool IsReadOnly => true;
 
-            public CastedArrayWrapperInternal(IList<TInterface> list)
-                : base(list)
+            public CastedArrayWrapperInternal(IList<TInterface> collection)
+                : base(collection)
             {
-                _list = list;
             }
 
             public override ICollection<T> ToCollection() => ToArray();
@@ -74,7 +68,7 @@ namespace WrapIt.Collections
             {
                 var array = new T[Count];
                 var i = 0;
-                foreach (var item in _list)
+                foreach (var item in Collection)
                 {
                     array[i] = Conversion<T, TWrapped>.Unwrap((TWrapped)item);
                     ++i;
@@ -82,7 +76,7 @@ namespace WrapIt.Collections
                 return array;
             }
 
-            public int IndexOf(TWrapped item) => _list.IndexOf(item);
+            public int IndexOf(TWrapped item) => Collection.IndexOf(item);
 
             public void Insert(int index, TWrapped item) => throw new NotSupportedException();
 

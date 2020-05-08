@@ -25,13 +25,7 @@ namespace WrapIt
             new TypeData(typeof(double), new TypeName("double")),
             new TypeData(typeof(char), new TypeName("char")),
             new TypeData(typeof(bool), new TypeName("bool")),
-            new TypeData(typeof(void), new TypeName("void")),
-            new EnumerableWrapperData(),
-            new CollectionWrapperData(),
-            new ListWrapperBaseData(),
-            new ArrayWrapperData(),
-            new ListWrapperData(),
-            new DictionaryWrapperData()
+            new TypeData(typeof(void), new TypeName("void"))
         };
 
         public Type Type { get; }
