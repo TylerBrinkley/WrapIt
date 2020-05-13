@@ -35,6 +35,10 @@ namespace WrapIt
 
         public override string GetCodeToConvertToClassType(string parameterName) => ClassName != InterfaceName ? $"{ClassName}.Create({parameterName})" : base.GetCodeToConvertToClassType(parameterName);
 
+        public override string GetCodeToConvertFromActualType(string input) => Type.IsInterface ? $"{ClassName}.Create({input})" : input;
+
+        public override string GetCodeToConvertFromActualTypeToInterface(string input) => $"{ClassName}.Create({input})";
+
         public override IEnumerable<TypeData> GetPublicTypes() => base.GetPublicTypes().Concat(ElementType.GetPublicTypes());
     }
 }

@@ -15,6 +15,7 @@
   <ItemGroup>
     <ProjectReference Include="..\WrapIt.Collections\WrapIt.Collections.csproj" />
     <ProjectReference Include="..\WrapIt.Core\WrapIt.Core.csproj" />
+    <ProjectReference Include="..\WrapIt.Generated\WrapIt.Generated.csproj" />
   </ItemGroup>
 
 </Project>

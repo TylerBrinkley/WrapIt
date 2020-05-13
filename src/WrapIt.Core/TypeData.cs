@@ -77,6 +77,10 @@ namespace WrapIt
 
         public virtual string GetCodeToConvertToClassType(string parameterName) => ClassName != InterfaceName ? $"({ClassName}){parameterName}" : parameterName;
 
+        public virtual string GetCodeToConvertFromActualType(string input) => input;
+
+        public virtual string GetCodeToConvertFromActualTypeToInterface(string input) => ClassName != InterfaceName ? $"({ClassName}){input}" : input;
+
         public virtual IEnumerable<TypeData> GetPublicTypes()
         {
             yield return this;

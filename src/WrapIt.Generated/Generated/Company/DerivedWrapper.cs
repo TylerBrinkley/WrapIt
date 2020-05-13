@@ -1,0 +1,43 @@
+﻿using System;
+using System.Collections.Generic;
+using OtherNamespace;
+using WrapIt.Collections;
+
+namespace Company
+{
+    public sealed partial class DerivedWrapper : BaseWrapper, IDerived
+    {
+        public static implicit operator DerivedWrapper(Company.Derived @object) => @object != null ? new DerivedWrapper(@object) : null;
+
+        public static implicit operator Company.Derived(DerivedWrapper @object) => @object?.Object;
+
+        public new Company.Derived Object => (Company.Derived)base.Object;
+
+        public ArrayWrapper<Company.Base, BaseWrapper, IBase> Array { get => Object.Array; set => Object.Array = value?.ToCollection(); }
+
+        IList<IBase> IDerived.Array { get => Array; set => Array = ArrayWrapper<Company.Base, BaseWrapper, IBase>.Create(value); }
+
+        public decimal Bird { set => Object.Bird = value; }
+
+        public OtherWrapper Cat { get => Object.Cat; set => Object.Cat = value; }
+
+        IOther IDerived.Cat { get => Cat; set => Cat = (OtherWrapper)value; }
+
+        public CollectionWrapper Collection { get => Object.Collection; set => Object.Collection = value; }
+
+        ICollection IDerived.Collection { get => Collection; set => Collection = (CollectionWrapper)value; }
+
+        public OtherWrapper this[int index] => Object[index];
+
+        IOther IDerived.this[int index] => this[index];
+
+        public List<string> Names { get => Object.Names; set => Object.Names = value; }
+
+        public DerivedWrapper(Company.Derived @object)
+            : base(@object)
+        {
+        }
+
+        int IComparable.CompareTo(object obj) => ((IComparable)Object).CompareTo(obj is DerivedWrapper o ? o.Object : obj);
+    }
+}
