@@ -5,21 +5,27 @@ using System.Collections.Generic;
 namespace WrapIt.Collections
 {
     public sealed class DictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface> : IDictionary<TKey, TValueInterface>, IReadOnlyDictionary<TKey, TValueInterface>
+        where TKey : notnull
         where TValueWrapped : TValueInterface
     {
-        public static implicit operator DictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface>(Dictionary<TKey, TValue> dictionary) => dictionary != null ? new DictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface>(dictionary) : null;
+        public static implicit operator DictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface>?(Dictionary<TKey, TValue>? dictionary) => dictionary != null ? new DictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface>(dictionary) : null;
 
-        public static implicit operator Dictionary<TKey, TValue>(DictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface> dictionaryWrapper) => dictionaryWrapper?.ToDictionary();
+        public static implicit operator Dictionary<TKey, TValue>?(DictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface>? dictionaryWrapper) => dictionaryWrapper?.ToCollection();
 
-        public static DictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface> Create(IDictionary<TKey, TValue> dictionary) => dictionary != null ? new DictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface>(dictionary) : null;
+        public static DictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface>? Create(IDictionary<TKey, TValue>? dictionary) => dictionary != null ? new DictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface>(dictionary) : null;
 
-        public static DictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface> Create(IDictionary<TKey, TValueInterface> dictionary) => dictionary != null ? new DictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface>(dictionary) : null;
+        public static DictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface>? Create(IDictionary<TKey, TValueInterface>? dictionary) => dictionary switch
+        {
+            null => null,
+            DictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface> v0 => v0,
+            _ => new DictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface>(dictionary)
+        };
 
         internal IDictionaryWrapperInternal InternalWrapper { get; }
 
         public TValueWrapped this[TKey key] { get => InternalWrapper[key]; set => InternalWrapper[key] = value; }
 
-        TValueInterface IDictionary<TKey, TValueInterface>.this[TKey key] { get => this[key]; set => this[key] = (TValueWrapped)value; }
+        TValueInterface IDictionary<TKey, TValueInterface>.this[TKey key] { get => this[key]; set => this[key] = (TValueWrapped)value!; }
 
         TValueInterface IReadOnlyDictionary<TKey, TValueInterface>.this[TKey key] => this[key];
 
@@ -47,7 +53,7 @@ namespace WrapIt.Collections
             InternalWrapper = new CastedDictionaryWrapper(dictionary ?? throw new ArgumentNullException(nameof(dictionary)));
         }
 
-        public Dictionary<TKey, TValue> ToDictionary() => InternalWrapper.ToDictionary();
+        public Dictionary<TKey, TValue> ToCollection() => InternalWrapper.ToDictionary();
 
         public IEnumerator<KeyValuePair<TKey, TValueWrapped>> GetEnumerator() => InternalWrapper.GetEnumerator();
 
@@ -63,13 +69,13 @@ namespace WrapIt.Collections
 
         public void Add(TKey key, TValueWrapped value) => InternalWrapper.Add(key, value);
 
-        void IDictionary<TKey, TValueInterface>.Add(TKey key, TValueInterface value) => Add(key, (TValueWrapped)value);
+        void IDictionary<TKey, TValueInterface>.Add(TKey key, TValueInterface value) => Add(key, (TValueWrapped)value!);
 
-        void ICollection<KeyValuePair<TKey, TValueInterface>>.Add(KeyValuePair<TKey, TValueInterface> item) => Add(item.Key, (TValueWrapped)item.Value);
+        void ICollection<KeyValuePair<TKey, TValueInterface>>.Add(KeyValuePair<TKey, TValueInterface> item) => Add(item.Key, (TValueWrapped)item.Value!);
 
         public void Clear() => InternalWrapper.Clear();
 
-        bool ICollection<KeyValuePair<TKey, TValueInterface>>.Contains(KeyValuePair<TKey, TValueInterface> item) => TryGetValue(item.Key, out var value) && EqualityComparer<TValue>.Default.Equals(Conversion<TValue, TValueWrapped>.Unwrap(value), Conversion<TValue, TValueWrapped>.Unwrap((TValueWrapped)item.Value));
+        bool ICollection<KeyValuePair<TKey, TValueInterface>>.Contains(KeyValuePair<TKey, TValueInterface> item) => TryGetValue(item.Key, out var value) && EqualityComparer<TValue>.Default.Equals(Conversion<TValue, TValueWrapped>.Unwrap(value), Conversion<TValue, TValueWrapped>.Unwrap((TValueWrapped)item.Value!));
 
         public bool ContainsKey(TKey key) => InternalWrapper.ContainsKey(key);
 
@@ -116,7 +122,7 @@ namespace WrapIt.Collections
 
             public ICollection<TKey> Keys => _dictionary.Keys;
 
-            public CollectionWrapper<TValue, TValueWrapped, TValueInterface> Values => CollectionWrapper<TValue, TValueWrapped, TValueInterface>.Create(_dictionary.Values);
+            public CollectionWrapper<TValue, TValueWrapped, TValueInterface> Values => CollectionWrapper<TValue, TValueWrapped, TValueInterface>.Create(_dictionary.Values)!;
 
             ICollection<TValueWrapped> IDictionary<TKey, TValueWrapped>.Values => throw new NotSupportedException();
 
@@ -171,11 +177,11 @@ namespace WrapIt.Collections
         {
             private readonly IDictionary<TKey, TValueInterface> _dictionary;
 
-            public TValueWrapped this[TKey key] { get => (TValueWrapped)_dictionary[key]; set => _dictionary[key] = value; }
+            public TValueWrapped this[TKey key] { get => (TValueWrapped)_dictionary[key]!; set => _dictionary[key] = value; }
 
             public ICollection<TKey> Keys => _dictionary.Keys;
 
-            public CollectionWrapper<TValue, TValueWrapped, TValueInterface> Values => CollectionWrapper<TValue, TValueWrapped, TValueInterface>.Create(_dictionary.Values);
+            public CollectionWrapper<TValue, TValueWrapped, TValueInterface> Values => CollectionWrapper<TValue, TValueWrapped, TValueInterface>.Create(_dictionary.Values)!;
 
             ICollection<TValueWrapped> IDictionary<TKey, TValueWrapped>.Values => throw new NotSupportedException();
 
@@ -199,7 +205,7 @@ namespace WrapIt.Collections
             public bool TryGetValue(TKey key, out TValueWrapped value)
             {
                 var success = _dictionary.TryGetValue(key, out var v);
-                value = (TValueWrapped)v;
+                value = (TValueWrapped)v!;
                 return success;
             }
 
@@ -208,7 +214,7 @@ namespace WrapIt.Collections
                 var dictionary = new Dictionary<TKey, TValue>(_dictionary.Count);
                 foreach (var item in _dictionary)
                 {
-                    dictionary[item.Key] = Conversion<TValue, TValueWrapped>.Unwrap((TValueWrapped)item.Value);
+                    dictionary[item.Key] = Conversion<TValue, TValueWrapped>.Unwrap((TValueWrapped)item.Value!);
                 }
                 return dictionary;
             }
@@ -227,7 +233,7 @@ namespace WrapIt.Collections
             {
                 foreach (var item in _dictionary)
                 {
-                    yield return new KeyValuePair<TKey, TValueWrapped>(item.Key, (TValueWrapped)item.Value);
+                    yield return new KeyValuePair<TKey, TValueWrapped>(item.Key, (TValueWrapped)item.Value!);
                 }
             }
 

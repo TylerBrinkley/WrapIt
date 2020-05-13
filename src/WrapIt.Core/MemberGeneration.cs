@@ -5,6 +5,6 @@
         None = 0,
         OnlyInInterface = 1,
         Full = 2,
-        WrapInCompilerFlag = 3
+        WrapImplementationInCompilerFlag = 3
     }
 }

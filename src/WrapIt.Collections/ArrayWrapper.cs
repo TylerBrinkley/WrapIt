@@ -6,13 +6,18 @@ namespace WrapIt.Collections
     public sealed class ArrayWrapper<T, TWrapped, TInterface> : ListWrapperBase<T, TWrapped, TInterface>
         where TWrapped : TInterface
     {
-        public static implicit operator ArrayWrapper<T, TWrapped, TInterface>(T[] array) => array != null ? new ArrayWrapper<T, TWrapped, TInterface>(array) : null;
+        public static implicit operator ArrayWrapper<T, TWrapped, TInterface>?(T[]? array) => array != null ? new ArrayWrapper<T, TWrapped, TInterface>(array) : null;
 
-        public static implicit operator T[](ArrayWrapper<T, TWrapped, TInterface> arrayWrapper) => arrayWrapper?.ToArray();
+        public static implicit operator T[]?(ArrayWrapper<T, TWrapped, TInterface>? arrayWrapper) => arrayWrapper?.ToCollection();
 
-        public static ArrayWrapper<T, TWrapped, TInterface> Create(T[] array) => array;
+        public static ArrayWrapper<T, TWrapped, TInterface>? Create(T[]? array) => array;
 
-        public static ArrayWrapper<T, TWrapped, TInterface> Create(IList<TInterface> list) => list != null ? new ArrayWrapper<T, TWrapped, TInterface>(list) : null;
+        public static ArrayWrapper<T, TWrapped, TInterface>? Create(IList<TInterface>? list) => list switch
+        {
+            null => null,
+            ArrayWrapper<T, TWrapped, TInterface> v0 => v0,
+            _ => new ArrayWrapper<T, TWrapped, TInterface>(list)
+        };
 
         internal new IArrayWrapperInternal InternalWrapper => (IArrayWrapperInternal)base.InternalWrapper;
 
@@ -26,7 +31,7 @@ namespace WrapIt.Collections
         {
         }
 
-        public T[] ToArray() => InternalWrapper.ToArray();
+        public new T[] ToCollection() => InternalWrapper.ToArray();
 
         internal interface IArrayWrapperInternal : IListWrapperBaseInternal
         {
@@ -49,12 +54,16 @@ namespace WrapIt.Collections
             public void Insert(int index, TWrapped item) => throw new NotSupportedException();
 
             public void RemoveAt(int index) => throw new NotSupportedException();
+
+            public override void Add(TWrapped item) => throw new NotSupportedException();
+
+            public override void Clear() => throw new NotSupportedException();
+
+            public override bool Remove(TWrapped item) => throw new NotSupportedException();
         }
 
-        private sealed class CastedArrayWrapperInternal : CastedCollectionWrapperInternal<IList<TInterface>>, IArrayWrapperInternal
+        private sealed class CastedArrayWrapperInternal : CastedListWrapperBaseInternal, IArrayWrapperInternal
         {
-            public TWrapped this[int index] { get => (TWrapped)Collection[index]; set => Collection[index] = value; }
-
             public override bool IsReadOnly => true;
 
             public CastedArrayWrapperInternal(IList<TInterface> collection)
@@ -70,17 +79,15 @@ namespace WrapIt.Collections
                 var i = 0;
                 foreach (var item in Collection)
                 {
-                    array[i] = Conversion<T, TWrapped>.Unwrap((TWrapped)item);
+                    array[i] = Conversion<T, TWrapped>.Unwrap((TWrapped)item!);
                     ++i;
                 }
                 return array;
             }
 
-            public int IndexOf(TWrapped item) => Collection.IndexOf(item);
+            public override void Insert(int index, TWrapped item) => throw new NotSupportedException();
 
-            public void Insert(int index, TWrapped item) => throw new NotSupportedException();
-
-            public void RemoveAt(int index) => throw new NotSupportedException();
+            public override void RemoveAt(int index) => throw new NotSupportedException();
 
             public override void Add(TWrapped item) => throw new NotSupportedException();
 

@@ -11,17 +11,12 @@ using OtherNamespace;
 
 namespace WrapIt.Tests
 {
-    public class Tests
+    public class GenerationTests
     {
         private readonly Dictionary<string, MemoryStream> _files = new Dictionary<string, MemoryStream>();
 
-        [SetUp]
-        public void Setup()
-        {
-        }
-
         [Test]
-        public async Task Test1()
+        public async Task Generation()
         {
             var builder = new WrapperBuilder();
             builder.RootTypes.Add(typeof(Derived));
@@ -79,6 +74,8 @@ namespace Company
         void IBase.DoStuff(IOther other) => DoStuff((OtherWrapper)other);
 
         public override bool Equals(object obj) => Object.Equals(obj is BaseWrapper o ? o.Object : obj);
+
+        public override int GetHashCode() => Object.GetHashCode();
     }
 }", baseClass);
 
@@ -120,7 +117,7 @@ namespace Company
 
         public new Company.Derived Object => (Company.Derived)base.Object;
 
-        public ArrayWrapper<Company.Base, BaseWrapper, IBase> Array { get => Object.Array; set => Object.Array = value?.ToArray(); }
+        public ArrayWrapper<Company.Base, BaseWrapper, IBase> Array { get => Object.Array; set => Object.Array = value?.ToCollection(); }
 
         IList<IBase> IDerived.Array { get => Array; set => Array = ArrayWrapper<Company.Base, BaseWrapper, IBase>.Create(value); }
 
@@ -200,6 +197,10 @@ namespace Company
         public DerivedWrapper Add(string name, DateTime value) => Object.Add(name, value);
 
         IDerived ICollection.Add(string name, DateTime value) => Add(name, value);
+
+        public override bool Equals(object obj) => Object.Equals(obj is CollectionWrapper o ? o.Object : obj);
+
+        public override int GetHashCode() => Object.GetHashCode();
 
         IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<IDerived>)this).GetEnumerator();
 
@@ -283,6 +284,10 @@ namespace OtherNamespace
         {
             Object = @object ?? throw new ArgumentNullException(nameof(@object));
         }
+
+        public override bool Equals(object obj) => Object.Equals(obj is FieldChangeEventArgsWrapper o ? o.Object : obj);
+
+        public override int GetHashCode() => Object.GetHashCode();
     }
 }", fieldChangeEventArgsClass);
 
@@ -338,6 +343,10 @@ namespace OtherNamespace
         {
             Object = @object ?? throw new ArgumentNullException(nameof(@object));
         }
+
+        public override bool Equals(object obj) => Object.Equals(obj is OtherWrapper o ? o.Object : obj);
+
+        public override int GetHashCode() => Object.GetHashCode();
     }
 }", otherClass);
         }

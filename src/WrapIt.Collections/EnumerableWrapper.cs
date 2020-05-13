@@ -4,17 +4,10 @@ using System.Collections.Generic;
 
 namespace WrapIt.Collections
 {
-    internal static class Conversion<T, TWrapped>
-    {
-        public static readonly Func<T, TWrapped> Wrap = (Func<T, TWrapped>)Delegate.CreateDelegate(typeof(Func<T, TWrapped>), typeof(TWrapped).GetMethod("op_Implicit", new[] { typeof(T) }));
-
-        public static readonly Func<TWrapped, T> Unwrap = (Func<TWrapped, T>)Delegate.CreateDelegate(typeof(Func<TWrapped, T>), typeof(TWrapped).GetMethod("op_Implicit", new[] { typeof(TWrapped) }));
-    }
-
     public class EnumerableWrapper<T, TWrapped, TInterface> : IEnumerable<TInterface>
         where TWrapped : TInterface
     {
-        public static EnumerableWrapper<T, TWrapped, TInterface> Create(IEnumerable<T> enumerable) => enumerable switch
+        public static EnumerableWrapper<T, TWrapped, TInterface>? Create(IEnumerable<T>? enumerable) => enumerable switch
         {
             null => null,
             ICollection<T> v0 => CollectionWrapper<T, TWrapped, TInterface>.Create(v0),
@@ -22,11 +15,12 @@ namespace WrapIt.Collections
             _ => new EnumerableWrapper<T, TWrapped, TInterface>(enumerable)
         };
 
-        public static EnumerableWrapper<T, TWrapped, TInterface> Create(IEnumerable<TInterface> enumerable) => enumerable switch
+        public static EnumerableWrapper<T, TWrapped, TInterface>? Create(IEnumerable<TInterface>? enumerable) => enumerable switch
         {
             null => null,
-            ICollection<TInterface> v0 => CollectionWrapper<T, TWrapped, TInterface>.Create(v0),
-            IReadOnlyCollection<TInterface> v1 => ReadOnlyCollectionWrapper<T, TWrapped, TInterface>.Create(v1),
+            EnumerableWrapper<T, TWrapped, TInterface> v0 => v0,
+            ICollection<TInterface> v1 => CollectionWrapper<T, TWrapped, TInterface>.Create(v1),
+            IReadOnlyCollection<TInterface> v2 => ReadOnlyCollectionWrapper<T, TWrapped, TInterface>.Create(v2),
             _ => new EnumerableWrapper<T, TWrapped, TInterface>(enumerable)
         };
 
@@ -47,7 +41,7 @@ namespace WrapIt.Collections
             InternalWrapper = internalWrapper;
         }
 
-        public IEnumerable<T> ToEnumerable() => InternalWrapper.ToEnumerable();
+        public IEnumerable<T> ToCollection() => InternalWrapper.ToEnumerable();
 
         public IEnumerator<TWrapped> GetEnumerator() => InternalWrapper.GetEnumerator();
 
@@ -104,7 +98,7 @@ namespace WrapIt.Collections
                 var list = new List<T>();
                 foreach (var item in Collection)
                 {
-                    list.Add(Conversion<T, TWrapped>.Unwrap((TWrapped)item));
+                    list.Add(Conversion<T, TWrapped>.Unwrap((TWrapped)item!));
                 }
                 return list;
             }
@@ -113,7 +107,7 @@ namespace WrapIt.Collections
             {
                 foreach (var item in Collection)
                 {
-                    yield return (TWrapped)item;
+                    yield return (TWrapped)item!;
                 }
             }
 

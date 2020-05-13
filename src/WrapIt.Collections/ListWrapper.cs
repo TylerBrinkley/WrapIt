@@ -7,13 +7,18 @@ namespace WrapIt.Collections
     public sealed class ListWrapper<T, TWrapped, TInterface> : ListWrapperBase<T, TWrapped, TInterface>, IList<TInterface>
         where TWrapped : TInterface
     {
-        public static implicit operator ListWrapper<T, TWrapped, TInterface>(List<T> list) => list != null ? new ListWrapper<T, TWrapped, TInterface>(list) : null;
+        public static implicit operator ListWrapper<T, TWrapped, TInterface>?(List<T>? list) => list != null ? new ListWrapper<T, TWrapped, TInterface>(list) : null;
 
-        public static implicit operator List<T>(ListWrapper<T, TWrapped, TInterface> listWrapper) => listWrapper?.ToList();
+        public static implicit operator List<T>?(ListWrapper<T, TWrapped, TInterface>? listWrapper) => listWrapper?.ToCollection();
 
-        public static ListWrapper<T, TWrapped, TInterface> Create(IList<T> list) => list != null ? new ListWrapper<T, TWrapped, TInterface>(list) : null;
+        public static ListWrapper<T, TWrapped, TInterface>? Create(IList<T>? list) => list != null ? new ListWrapper<T, TWrapped, TInterface>(list) : null;
 
-        public static ListWrapper<T, TWrapped, TInterface> Create(IList<TInterface> list) => list != null ? new ListWrapper<T, TWrapped, TInterface>(list) : null;
+        public static ListWrapper<T, TWrapped, TInterface>? Create(IList<TInterface>? list) => list switch
+        {
+            null => null,
+            ListWrapper<T, TWrapped, TInterface> v0 => v0,
+            _ => new ListWrapper<T, TWrapped, TInterface>(list)
+        };
 
         internal new IListWrapperInternal InternalWrapper => (IListWrapperInternal)base.InternalWrapper;
 
@@ -27,7 +32,7 @@ namespace WrapIt.Collections
         {
         }
 
-        public List<T> ToList() => InternalWrapper.ToList();
+        public new List<T> ToCollection() => InternalWrapper.ToList();
 
         public void Add(TWrapped item) => InternalWrapper.Add(item);
 
@@ -37,7 +42,7 @@ namespace WrapIt.Collections
 
         public void Insert(int index, TWrapped item) => InternalWrapper.Insert(index, item);
 
-        void IList<TInterface>.Insert(int index, TInterface item) => Insert(index, (TWrapped)item);
+        void IList<TInterface>.Insert(int index, TInterface item) => Insert(index, (TWrapped)item!);
 
         public void RemoveAt(int index) => InternalWrapper.RemoveAt(index);
 
@@ -64,22 +69,14 @@ namespace WrapIt.Collections
             public void RemoveAt(int index) => Collection.RemoveAt(index);
         }
 
-        private sealed class CastedListWrapperInternal : CastedCollectionWrapperInternal<IList<TInterface>>, IListWrapperInternal
+        private sealed class CastedListWrapperInternal : CastedListWrapperBaseInternal, IListWrapperInternal
         {
-            public TWrapped this[int index] { get => (TWrapped)Collection[index]; set => Collection[index] = value; }
-
             public CastedListWrapperInternal(IList<TInterface> collection)
                 : base(collection)
             {
             }
 
             public List<T> ToList() => (List<T>)ToCollection();
-
-            public int IndexOf(TWrapped item) => Collection.IndexOf(item);
-
-            public void Insert(int index, TWrapped item) => Collection.Insert(index, item);
-
-            public void RemoveAt(int index) => Collection.RemoveAt(index);
         }
     }
 }

@@ -35,7 +35,7 @@ namespace WrapIt
             }
         }
 
-        public override string GetCodeToConvertToActualType(string parameterName) => ClassName != InterfaceName ? $"{parameterName}?.ToDictionary()" : base.GetCodeToConvertToActualType(parameterName);
+        public override string GetCodeToConvertToActualType(string parameterName) => ClassName != InterfaceName ? $"{parameterName}?.ToCollection()" : base.GetCodeToConvertToActualType(parameterName);
 
         public override string GetCodeToConvertToClassType(string parameterName) => ClassName != InterfaceName ? $"{ClassName}.Create({parameterName})" : base.GetCodeToConvertToClassType(parameterName);
 

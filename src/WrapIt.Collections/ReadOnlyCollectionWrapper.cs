@@ -6,17 +6,18 @@ namespace WrapIt.Collections
     public class ReadOnlyCollectionWrapper<T, TWrapped, TInterface> : EnumerableWrapper<T, TWrapped, TInterface>, IReadOnlyCollection<TInterface>
         where TWrapped : TInterface
     {
-        public static ReadOnlyCollectionWrapper<T, TWrapped, TInterface> Create(IReadOnlyCollection<T> collection) => collection switch
+        public static ReadOnlyCollectionWrapper<T, TWrapped, TInterface>? Create(IReadOnlyCollection<T>? collection) => collection switch
         {
             null => null,
             IReadOnlyList<T> v0 => ReadOnlyListWrapper<T, TWrapped, TInterface>.Create(v0),
             _ => new ReadOnlyCollectionWrapper<T, TWrapped, TInterface>(collection)
         };
 
-        public static ReadOnlyCollectionWrapper<T, TWrapped, TInterface> Create(IReadOnlyCollection<TInterface> collection) => collection switch
+        public static ReadOnlyCollectionWrapper<T, TWrapped, TInterface>? Create(IReadOnlyCollection<TInterface>? collection) => collection switch
         {
             null => null,
-            IReadOnlyList<TInterface> v0 => ReadOnlyListWrapper<T, TWrapped, TInterface>.Create(v0),
+            ReadOnlyCollectionWrapper<T, TWrapped, TInterface> v0 => v0,
+            IReadOnlyList<TInterface> v1 => ReadOnlyListWrapper<T, TWrapped, TInterface>.Create(v1),
             _ => new ReadOnlyCollectionWrapper<T, TWrapped, TInterface>(collection)
         };
 
@@ -39,8 +40,11 @@ namespace WrapIt.Collections
         {
         }
 
+        public new IReadOnlyCollection<T> ToCollection() => InternalWrapper.ToCollection();
+
         internal interface IReadOnlyCollectionWrapperInternal : IEnumerableWrapperInternal, IReadOnlyCollection<TWrapped>
         {
+            IReadOnlyCollection<T> ToCollection();
         }
 
         internal class StandardReadOnlyCollectionWrapperInternal<TCollection> : StandardEnumerableWrapperInternal<TCollection>, IReadOnlyCollectionWrapperInternal
@@ -68,12 +72,12 @@ namespace WrapIt.Collections
 
             public override IEnumerable<T> ToEnumerable() => ToCollection();
 
-            public virtual ICollection<T> ToCollection()
+            public virtual IReadOnlyCollection<T> ToCollection()
             {
                 var list = new List<T>(Count);
                 foreach (var item in Collection)
                 {
-                    list.Add(Conversion<T, TWrapped>.Unwrap((TWrapped)item));
+                    list.Add(Conversion<T, TWrapped>.Unwrap((TWrapped)item!));
                 }
                 return list;
             }

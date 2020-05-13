@@ -107,7 +107,7 @@ namespace WrapIt
             var methodInfos = Type.GetMethods(bindingFlags);
             foreach (var method in methodInfos)
             {
-                if (method.DeclaringType != typeof(object) && !method.IsSpecialName && IncludeMethod(builder, method, typeDatas, out var overrideObject))
+                if ((method.DeclaringType != typeof(object) || method.Name == "Equals" || method.Name == "GetHashCode") && !method.IsSpecialName && IncludeMethod(builder, method, typeDatas, out var overrideObject))
                 {
                     var generation = builder.MethodResolver?.Invoke(Type, method) ?? MemberGeneration.Full;
                     if (generation != MemberGeneration.None)

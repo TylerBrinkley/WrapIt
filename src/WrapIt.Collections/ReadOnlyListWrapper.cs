@@ -6,9 +6,14 @@ namespace WrapIt.Collections
     public sealed class ReadOnlyListWrapper<T, TWrapped, TInterface> : ReadOnlyCollectionWrapper<T, TWrapped, TInterface>, IReadOnlyList<TInterface>
         where TWrapped : TInterface
     {
-        public static ReadOnlyListWrapper<T, TWrapped, TInterface> Create(IReadOnlyList<T> list) => list != null ? new ReadOnlyListWrapper<T, TWrapped, TInterface>(list) : null;
+        public static ReadOnlyListWrapper<T, TWrapped, TInterface>? Create(IReadOnlyList<T>? list) => list != null ? new ReadOnlyListWrapper<T, TWrapped, TInterface>(list) : null;
 
-        public static ReadOnlyListWrapper<T, TWrapped, TInterface> Create(IReadOnlyList<TInterface> list) => list != null ? new ReadOnlyListWrapper<T, TWrapped, TInterface>(list) : null;
+        public static ReadOnlyListWrapper<T, TWrapped, TInterface>? Create(IReadOnlyList<TInterface>? list) => list switch
+        {
+            null => null,
+            ReadOnlyListWrapper<T, TWrapped, TInterface> v0 => v0,
+            _ => new ReadOnlyListWrapper<T, TWrapped, TInterface>(list)
+        };
 
         internal new IReadOnlyListWrapperInternal InternalWrapper => (IReadOnlyListWrapperInternal)base.InternalWrapper;
 
@@ -24,7 +29,7 @@ namespace WrapIt.Collections
         {
         }
 
-        public IReadOnlyList<T> ToList() => InternalWrapper.ToList();
+        public new IReadOnlyList<T> ToCollection() => InternalWrapper.ToList();
 
         internal interface IReadOnlyListWrapperInternal : IReadOnlyCollectionWrapperInternal, IReadOnlyList<TWrapped>
         {
@@ -45,7 +50,7 @@ namespace WrapIt.Collections
 
         private sealed class CastedReadOnlyListWrapperInternal : CastedReadOnlyCollectionWrapperInternal<IReadOnlyList<TInterface>>, IReadOnlyListWrapperInternal
         {
-            public TWrapped this[int index] => (TWrapped)Collection[index];
+            public TWrapped this[int index] => (TWrapped)Collection[index]!;
 
             public CastedReadOnlyListWrapperInternal(IReadOnlyList<TInterface> collection)
                 : base(collection)

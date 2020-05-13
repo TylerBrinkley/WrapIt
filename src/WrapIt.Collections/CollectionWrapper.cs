@@ -6,7 +6,7 @@ namespace WrapIt.Collections
     public class CollectionWrapper<T, TWrapped, TInterface> : EnumerableWrapper<T, TWrapped, TInterface>, ICollection<TInterface>, IReadOnlyCollection<TInterface>
         where TWrapped : TInterface
     {
-        public static CollectionWrapper<T, TWrapped, TInterface> Create(ICollection<T> collection) => collection switch
+        public static CollectionWrapper<T, TWrapped, TInterface>? Create(ICollection<T>? collection) => collection switch
         {
             null => null,
             T[] v0 => ArrayWrapper<T, TWrapped, TInterface>.Create(v0),
@@ -15,12 +15,13 @@ namespace WrapIt.Collections
             _ => new CollectionWrapper<T, TWrapped, TInterface>(collection)
         };
 
-        public static CollectionWrapper<T, TWrapped, TInterface> Create(ICollection<TInterface> collection) => collection switch
+        public static CollectionWrapper<T, TWrapped, TInterface>? Create(ICollection<TInterface>? collection) => collection switch
         {
             null => null,
-            TInterface[] v0 => ArrayWrapper<T, TWrapped, TInterface>.Create(v0),
-            IList<TInterface> v1 => ListWrapper<T, TWrapped, TInterface>.Create(v1),
-            ISet<TInterface> v2 => SetWrapper<T, TWrapped, TInterface>.Create(v2),
+            CollectionWrapper<T, TWrapped, TInterface> v0 => v0,
+            TInterface[] v1 => ArrayWrapper<T, TWrapped, TInterface>.Create(v1),
+            IList<TInterface> v2 => ListWrapper<T, TWrapped, TInterface>.Create(v2),
+            ISet<TInterface> v3 => SetWrapper<T, TWrapped, TInterface>.Create(v3),
             _ => new CollectionWrapper<T, TWrapped, TInterface>(collection)
         };
 
@@ -45,19 +46,11 @@ namespace WrapIt.Collections
         {
         }
 
-        public ICollection<T> ToCollection() => InternalWrapper.ToCollection();
-
-        IEnumerator<TInterface> IEnumerable<TInterface>.GetEnumerator()
-        {
-            foreach (var item in this)
-            {
-                yield return item;
-            }
-        }
+        public new ICollection<T> ToCollection() => InternalWrapper.ToCollection();
 
         public bool Contains(TWrapped item) => InternalWrapper.Contains(item);
 
-        bool ICollection<TInterface>.Contains(TInterface item) => Contains((TWrapped)item);
+        bool ICollection<TInterface>.Contains(TInterface item) => Contains((TWrapped)item!);
 
         void ICollection<TInterface>.CopyTo(TInterface[] array, int arrayIndex)
         {
@@ -72,11 +65,11 @@ namespace WrapIt.Collections
             }
         }
 
-        void ICollection<TInterface>.Add(TInterface item) => InternalWrapper.Add((TWrapped)item);
+        void ICollection<TInterface>.Add(TInterface item) => InternalWrapper.Add((TWrapped)item!);
 
         void ICollection<TInterface>.Clear() => InternalWrapper.Clear();
 
-        bool ICollection<TInterface>.Remove(TInterface item) => InternalWrapper.Remove((TWrapped)item);
+        bool ICollection<TInterface>.Remove(TInterface item) => InternalWrapper.Remove((TWrapped)item!);
 
         internal interface ICollectionWrapperInternal : IEnumerableWrapperInternal, ICollection<TWrapped>
         {

@@ -7,9 +7,14 @@ namespace WrapIt.Collections
     public sealed class ReadOnlyDictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface> : IReadOnlyDictionary<TKey, TValueInterface>
         where TValueWrapped : TValueInterface
     {
-        public static ReadOnlyDictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface> Create(IReadOnlyDictionary<TKey, TValue> dictionary) => dictionary != null ? new ReadOnlyDictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface>(dictionary) : null;
+        public static ReadOnlyDictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface>? Create(IReadOnlyDictionary<TKey, TValue>? dictionary) => dictionary != null ? new ReadOnlyDictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface>(dictionary) : null;
 
-        public static ReadOnlyDictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface> Create(IReadOnlyDictionary<TKey, TValueInterface> dictionary) => dictionary != null ? new ReadOnlyDictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface>(dictionary) : null;
+        public static ReadOnlyDictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface>? Create(IReadOnlyDictionary<TKey, TValueInterface>? dictionary) => dictionary switch
+        {
+            null => null,
+            ReadOnlyDictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface> v0 => v0,
+            _ => new ReadOnlyDictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface>(dictionary)
+        };
 
         internal IReadOnlyDictionaryWrapperInternal InternalWrapper { get; }
 
@@ -35,7 +40,7 @@ namespace WrapIt.Collections
             InternalWrapper = new CastedReadOnlyDictionaryWrapper(dictionary ?? throw new ArgumentNullException(nameof(dictionary)));
         }
 
-        public IReadOnlyDictionary<TKey, TValue> ToDictionary() => InternalWrapper.ToDictionary();
+        public IReadOnlyDictionary<TKey, TValue> ToCollection() => InternalWrapper.ToDictionary();
 
         public IEnumerator<KeyValuePair<TKey, TValueWrapped>> GetEnumerator() => InternalWrapper.GetEnumerator();
 
@@ -75,7 +80,7 @@ namespace WrapIt.Collections
 
             public IEnumerable<TKey> Keys => _dictionary.Keys;
 
-            public EnumerableWrapper<TValue, TValueWrapped, TValueInterface> Values => EnumerableWrapper<TValue, TValueWrapped, TValueInterface>.Create(_dictionary.Values);
+            public EnumerableWrapper<TValue, TValueWrapped, TValueInterface> Values => EnumerableWrapper<TValue, TValueWrapped, TValueInterface>.Create(_dictionary.Values)!;
 
             IEnumerable<TValueWrapped> IReadOnlyDictionary<TKey, TValueWrapped>.Values => throw new NotSupportedException();
 
@@ -114,11 +119,11 @@ namespace WrapIt.Collections
         {
             private readonly IReadOnlyDictionary<TKey, TValueInterface> _dictionary;
 
-            public TValueWrapped this[TKey key] => (TValueWrapped)_dictionary[key];
+            public TValueWrapped this[TKey key] => (TValueWrapped)_dictionary[key]!;
 
             public IEnumerable<TKey> Keys => _dictionary.Keys;
 
-            public EnumerableWrapper<TValue, TValueWrapped, TValueInterface> Values => EnumerableWrapper<TValue, TValueWrapped, TValueInterface>.Create(_dictionary.Values);
+            public EnumerableWrapper<TValue, TValueWrapped, TValueInterface> Values => EnumerableWrapper<TValue, TValueWrapped, TValueInterface>.Create(_dictionary.Values)!;
 
             IEnumerable<TValueWrapped> IReadOnlyDictionary<TKey, TValueWrapped>.Values => throw new NotSupportedException();
 
@@ -136,7 +141,7 @@ namespace WrapIt.Collections
             public bool TryGetValue(TKey key, out TValueWrapped value)
             {
                 var success = _dictionary.TryGetValue(key, out var v);
-                value = (TValueWrapped)v;
+                value = (TValueWrapped)v!;
                 return success;
             }
 
@@ -145,7 +150,7 @@ namespace WrapIt.Collections
                 var dictionary = new Dictionary<TKey, TValue>(_dictionary.Count);
                 foreach (var item in _dictionary)
                 {
-                    dictionary[item.Key] = Conversion<TValue, TValueWrapped>.Unwrap((TValueWrapped)item.Value);
+                    dictionary[item.Key] = Conversion<TValue, TValueWrapped>.Unwrap((TValueWrapped)item.Value!);
                 }
                 return dictionary;
             }
@@ -154,7 +159,7 @@ namespace WrapIt.Collections
             {
                 foreach (var item in _dictionary)
                 {
-                    yield return new KeyValuePair<TKey, TValueWrapped>(item.Key, (TValueWrapped)item.Value);
+                    yield return new KeyValuePair<TKey, TValueWrapped>(item.Key, (TValueWrapped)item.Value!);
                 }
             }
 

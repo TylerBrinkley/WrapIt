@@ -276,7 +276,7 @@ namespace WrapIt
 
                 foreach (var property in Properties)
                 {
-                    var wrapInCompilerFlag = property.Generation == MemberGeneration.WrapInCompilerFlag;
+                    var wrapInCompilerFlag = property.Generation == MemberGeneration.WrapImplementationInCompilerFlag;
                     if (wrapInCompilerFlag || property.Generation == MemberGeneration.Full)
                     {
                         if (wrapInCompilerFlag)
@@ -336,7 +336,7 @@ namespace WrapIt
 
                 foreach (var @event in Events)
                 {
-                    var wrapInCompilerFlag = @event.Generation == MemberGeneration.WrapInCompilerFlag;
+                    var wrapInCompilerFlag = @event.Generation == MemberGeneration.WrapImplementationInCompilerFlag;
                     if (wrapInCompilerFlag || @event.Generation == MemberGeneration.Full)
                     {
                         if (wrapInCompilerFlag)
@@ -403,7 +403,7 @@ namespace WrapIt
 
                 foreach (var method in Methods)
                 {
-                    var wrapInCompilerFlag = method.Generation == MemberGeneration.WrapInCompilerFlag;
+                    var wrapInCompilerFlag = method.Generation == MemberGeneration.WrapImplementationInCompilerFlag;
                     if (wrapInCompilerFlag || method.Generation == MemberGeneration.Full)
                     {
                         await writer.WriteLineAsync().ConfigureAwait(false);

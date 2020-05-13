@@ -49,6 +49,9 @@ namespace WrapIt
 
         public decimal MinCSharpVersion { get; set; } = decimal.MaxValue;
 
+        /// <summary>
+        /// For use with MemberGeneration.WrapImplementationInCompilerFlag. Default is "WRAP_IT_DEFAULT_MEMBER_GENERATION".
+        /// </summary>
         public string DefaultMemberGenerationCompilerFlag { get; set; } = "WRAP_IT_DEFAULT_MEMBER_GENERATION";
 
         public async Task BuildAsync(Func<Type, string, CancellationToken, Task<TextWriter>> writerProvider, CancellationToken cancellationToken = default)
@@ -92,7 +95,7 @@ namespace WrapIt
                         var elementTypeData = GetTypeData(elementType, typeDatas);
                         var className = new GenericTypeName("WrapIt.Collections", "ArrayWrapper", new[] { new TypeName(elementType.Namespace, elementType.Name, true), elementTypeData.ClassName, elementTypeData.InterfaceName });
                         var interfaceName = new GenericTypeName("System.Collections.Generic", "IList", new[] { elementTypeData.InterfaceName });
-                        typeData = new ArrayData(type, className, interfaceName, elementTypeData, this, typeDatas);
+                        typeData = new CollectionData(type, className, interfaceName, elementTypeData);
                         typeDatas.Add(typeData);
                     }
                     else if (baseType == typeof(MulticastDelegate))
@@ -170,7 +173,7 @@ namespace WrapIt
                     {
                         className = new GenericTypeName("WrapIt.Collections", "EnumerableWrapper", new[] { new TypeName(elementType.Namespace, elementType.Name, true), elementTypeData.ClassName, elementTypeData.InterfaceName });
                         interfaceName = new GenericTypeName("System.Collections.Generic", "IEnumerable", new[] { elementTypeData.InterfaceName });
-                        return new EnumerableData(type, className, interfaceName, elementTypeData);
+                        return new CollectionData(type, className, interfaceName, elementTypeData);
                     }
                 }
                 else if (genericTypeDefinition == typeof(ICollection<>))
@@ -192,7 +195,7 @@ namespace WrapIt
                     {
                         className = new GenericTypeName("WrapIt.Collections", "ListWrapper", new[] { new TypeName(elementType.Namespace, elementType.Name, true), elementTypeData.ClassName, elementTypeData.InterfaceName });
                         interfaceName = new GenericTypeName("System.Collections.Generic", "IList", new[] { elementTypeData.InterfaceName });
-                        return new ListData(type, className, interfaceName, elementTypeData);
+                        return new CollectionData(type, className, interfaceName, elementTypeData);
                     }
                 }
                 else if (genericTypeDefinition == typeof(HashSet<>) || genericTypeDefinition == typeof(ISet<>))
@@ -203,7 +206,7 @@ namespace WrapIt
                     {
                         className = new GenericTypeName("WrapIt.Collections", "SetWrapper", new[] { new TypeName(elementType.Namespace, elementType.Name, true), elementTypeData.ClassName, elementTypeData.InterfaceName });
                         interfaceName = new GenericTypeName("System.Collections.Generic", "ISet", new[] { elementTypeData.InterfaceName });
-                        return new SetData(type, className, interfaceName, elementTypeData);
+                        return new CollectionData(type, className, interfaceName, elementTypeData);
                     }
                 }
                 else if (genericTypeDefinition == typeof(Dictionary<,>) || genericTypeDefinition == typeof(IDictionary<,>))
@@ -239,7 +242,7 @@ namespace WrapIt
                     {
                         className = new GenericTypeName("WrapIt.Collections", "ReadOnlyListWrapper", new[] { new TypeName(elementType.Namespace, elementType.Name, true), elementTypeData.ClassName, elementTypeData.InterfaceName });
                         interfaceName = new GenericTypeName("System.Collections.Generic", "IReadOnlyList", new[] { elementTypeData.InterfaceName });
-                        return new ListData(type, className, interfaceName, elementTypeData);
+                        return new CollectionData(type, className, interfaceName, elementTypeData);
                     }
                 }
                 else if (genericTypeDefinition == typeof(IReadOnlyDictionary<,>))

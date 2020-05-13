@@ -36,7 +36,7 @@ namespace WrapIt
 
         public TypeBuildStatus BuildStatus { get; set; }
 
-        public HashSet<TypeData> DependentTypes { get; } = new HashSet<TypeData>();
+        public HashSet<TypeData> DependentTypes { get; }
 
 #pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
         public TypeData(Type type)
@@ -56,6 +56,7 @@ namespace WrapIt
             ClassName = className;
             InterfaceName = interfaceName;
             BuildStatus = buildStatus;
+            DependentTypes = new HashSet<TypeData>();
         }
 
         public static bool operator ==(TypeData? left, TypeData? right) => left is null ? right is null : left.Equals(right);
