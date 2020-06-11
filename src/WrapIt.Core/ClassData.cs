@@ -69,6 +69,12 @@ namespace WrapIt
                 classUsingDirectives.UnionWith(derivedType.ClassName.GetNamespaces());
             }
 
+            if (Properties.Any(p => p.Generation == MemberGeneration.FullWithNonNullCaching))
+            {
+                // For Interlocked
+                classUsingDirectives.Add("System.Threading");
+            }
+
             classUsingDirectives.UnionWith(interfaceUsingDirectives);
 
             await WriteInterfaceAsync(writerProvider, interfaceUsingDirectives, cancellationToken).ConfigureAwait(false);
@@ -277,7 +283,7 @@ namespace WrapIt
                 foreach (var property in Properties)
                 {
                     var wrapInCompilerFlag = property.Generation == MemberGeneration.WrapImplementationInCompilerFlag;
-                    if (wrapInCompilerFlag || property.Generation == MemberGeneration.Full)
+                    if (wrapInCompilerFlag || property.Generation == MemberGeneration.Full || property.Generation == MemberGeneration.FullWithNonNullCaching)
                     {
                         if (wrapInCompilerFlag)
                         {
@@ -285,6 +291,10 @@ namespace WrapIt
                         }
                         if (property.Parameters.Count > 0)
                         {
+                            if (property.Generation == MemberGeneration.FullWithNonNullCaching)
+                            {
+                                throw new NotSupportedException("Caching is not supported for indexers.");
+                            }
                             var basicArgumentList = string.Join(", ", property.Parameters.Select(p => p.GetAsArgument()));
                             await writer.WriteLineAsync($"        public {property.Type.ClassName} this[{string.Join(", ", property.Parameters.Select(p => p.GetAsClassParameter()))}] {(property.HasGetter && !property.HasSetter ? $"=> {property.Type.GetCodeToConvertFromActualType($"{ObjectName}[{basicArgumentList}]")};" : $"{{ {(property.HasGetter ? $"get {(builder.MinCSharpVersion >= 7M ? "=>" : "{ return")} {property.Type.GetCodeToConvertFromActualType($"{ObjectName}[{basicArgumentList}]")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}{(property.HasSetter ? $"set {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {ObjectName}[{basicArgumentList}] = {property.Type.GetCodeToConvertToActualType("value")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}}}")}").ConfigureAwait(false);
                             if (property.Type.InterfaceName != property.Type.ClassName || property.Parameters.Any(p => p.Type.ClassName != p.Type.InterfaceName))
@@ -296,7 +306,22 @@ namespace WrapIt
                         }
                         else
                         {
-                            await writer.WriteLineAsync($"        public {property.Type.ClassName} {property.Name} {(property.HasGetter && !property.HasSetter ? $"=> {property.Type.GetCodeToConvertFromActualType($"{ObjectName}.{property.Name}")};" : $"{{ {(property.HasGetter ? $"get {(builder.MinCSharpVersion >= 7M ? "=>" : "{ return")} {property.Type.GetCodeToConvertFromActualType($"{ObjectName}.{property.Name}")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}{(property.HasSetter ? $"set {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {ObjectName}.{property.Name} = {property.Type.GetCodeToConvertToActualType("value")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}}}")}").ConfigureAwait(false);
+                            if (property.Generation == MemberGeneration.FullWithNonNullCaching)
+                            {
+                                if (!property.HasGetter)
+                                {
+                                    throw new NotSupportedException("Caching is not supported for setter only properties.");
+                                }
+                                var variableName = $"{char.ToLower(property.Name[0])}{property.Name.Substring(1)}";
+                                var fieldName = $"_{variableName}";
+                                await writer.WriteLineAsync($"        private {property.Type.ClassName} {fieldName};").ConfigureAwait(false);
+                                await writer.WriteLineAsync().ConfigureAwait(false);
+                                await writer.WriteLineAsync($"        public {property.Type.ClassName} {property.Name} {{ get {{ var {variableName} = {fieldName}; return {variableName} ?? Interlocked.CompareExchange(ref {fieldName}, {variableName} = {property.Type.GetCodeToConvertFromActualType($"{ObjectName}.{property.Name}")}, null) ?? {variableName}; }} {(property.HasSetter ? $"set {{ {ObjectName}.{property.Name} = {property.Type.GetCodeToConvertToActualType("value")}; {fieldName} = null; }} " : string.Empty)}}}").ConfigureAwait(false);
+                            }
+                            else
+                            {
+                                await writer.WriteLineAsync($"        public {property.Type.ClassName} {property.Name} {(property.HasGetter && !property.HasSetter ? $"=> {property.Type.GetCodeToConvertFromActualType($"{ObjectName}.{property.Name}")};" : $"{{ {(property.HasGetter ? $"get {(builder.MinCSharpVersion >= 7M ? "=>" : "{ return")} {property.Type.GetCodeToConvertFromActualType($"{ObjectName}.{property.Name}")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}{(property.HasSetter ? $"set {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {ObjectName}.{property.Name} = {property.Type.GetCodeToConvertToActualType("value")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}}}")}").ConfigureAwait(false);
+                            }
                             if (property.Type.InterfaceName != property.Type.ClassName)
                             {
                                 await writer.WriteLineAsync().ConfigureAwait(false);
@@ -336,6 +361,10 @@ namespace WrapIt
 
                 foreach (var @event in Events)
                 {
+                    if (@event.Generation == MemberGeneration.FullWithNonNullCaching)
+                    {
+                        throw new NotSupportedException("Caching is not supported for events.");
+                    }
                     var wrapInCompilerFlag = @event.Generation == MemberGeneration.WrapImplementationInCompilerFlag;
                     if (wrapInCompilerFlag || @event.Generation == MemberGeneration.Full)
                     {
@@ -403,6 +432,10 @@ namespace WrapIt
 
                 foreach (var method in Methods)
                 {
+                    if (method.Generation == MemberGeneration.FullWithNonNullCaching)
+                    {
+                        throw new NotSupportedException("Caching is not supported for methods.");
+                    }
                     var wrapInCompilerFlag = method.Generation == MemberGeneration.WrapImplementationInCompilerFlag;
                     if (wrapInCompilerFlag || method.Generation == MemberGeneration.Full)
                     {

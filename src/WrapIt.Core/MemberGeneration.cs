@@ -5,6 +5,7 @@
         None = 0,
         OnlyInInterface = 1,
         Full = 2,
-        WrapImplementationInCompilerFlag = 3
+        WrapImplementationInCompilerFlag = 3,
+        FullWithNonNullCaching = 4
     }
 }
