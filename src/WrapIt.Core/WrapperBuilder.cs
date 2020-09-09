@@ -45,7 +45,7 @@ namespace WrapIt
 
         public Func<Type, Type, bool>? InterfaceResolver { get; set; }
 
-        public Func<Type, bool>? TypeResolver { get; set; }
+        public Func<Type, TypeGeneration>? TypeResolver { get; set; }
 
         public decimal MinCSharpVersion { get; set; } = decimal.MaxValue;
 
@@ -79,7 +79,8 @@ namespace WrapIt
             {
                 var typeName = type.Name;
                 var isEnum = type.IsEnum;
-                if ((!type.IsValueType || (isEnum && EnumFullNameFormat != null)) && _assembliesWithTypesToWrap.Contains(type.Assembly) && TypeResolver?.Invoke(type) != false)
+                TypeGeneration typeGeneration;
+                if ((!type.IsValueType || (isEnum && EnumFullNameFormat != null)) && _assembliesWithTypesToWrap.Contains(type.Assembly) && (typeGeneration = TypeResolver?.Invoke(type) ?? TypeGeneration.Instance) != TypeGeneration.None)
                 {
                     var typeNamespace = type.Namespace;
                     var baseType = type.BaseType;
@@ -107,7 +108,7 @@ namespace WrapIt
                     else
                     {
                         ClassData? baseTypeData = null;
-                        if (baseType != null && _assembliesWithTypesToWrap.Contains(baseType.Assembly) && TypeResolver?.Invoke(baseType) != false)
+                        if (baseType != null && _assembliesWithTypesToWrap.Contains(baseType.Assembly) && TypeResolver?.Invoke(baseType) != TypeGeneration.None)
                         {
                             baseTypeData = (ClassData)GetTypeData(baseType, typeDatas);
                             if (typeDatas.TryGetValue(new TypeData(type), out typeData))
@@ -117,7 +118,9 @@ namespace WrapIt
                         }
                         var classFullName = ClassFullNameFormat?.Invoke(typeNamespace, typeName) ?? $"{typeNamespace}.{typeName}Wrapper";
                         var interfaceFullName = InterfaceFullNameFormat?.Invoke(typeNamespace, typeName) ?? $"{typeNamespace}.I{typeName}";
-                        typeData = new ClassData(type, GetTypeName(classFullName), GetTypeName(interfaceFullName), TypeBuildStatus.NotYetBuilt, baseTypeData);
+                        var className = GetTypeName(classFullName);
+                        var interfaceName = GetTypeName(interfaceFullName);
+                        typeData = new ClassData(type, className, interfaceName, TypeBuildStatus.NotYetBuilt, baseTypeData, typeGeneration == TypeGeneration.Static);
                         typeDatas.Add(typeData);
                         if (baseTypeData != null)
                         {

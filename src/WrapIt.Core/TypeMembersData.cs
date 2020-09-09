@@ -33,6 +33,8 @@ namespace WrapIt
         {
         }
 
+        protected virtual Type[] GetInterfaces() => Type.GetInterfaces();
+
         public void Initialize(WrapperBuilder builder, HashSet<TypeData> typeDatas, BindingFlags bindingFlags)
         {
             if (_initialized)
@@ -42,7 +44,7 @@ namespace WrapIt
 
             var isIEnumerable = false;
             var isGenericIEnumerable = false;
-            foreach (var @interface in Type.GetInterfaces())
+            foreach (var @interface in GetInterfaces())
             {
                 if (@interface.IsPublic && !builder.AssembliesWithTypesToWrap.Contains(@interface.Assembly) && builder.InterfaceResolver?.Invoke(Type, @interface) != false)
                 {
