@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Xml.Linq;
 
 namespace WrapIt
 {
@@ -11,6 +14,10 @@ namespace WrapIt
         public MemberGeneration Generation { get; }
 
         public TypeData? DeclaringInterfaceType { get; set; }
+
+        public IEnumerable<XElement> Documentation { get; set; } = Enumerable.Empty<XElement>();
+
+        public string? ObsoleteMessage { get; set; }
 
         public EventData(DelegateData type, string name, MemberGeneration generation)
         {

@@ -5,10 +5,21 @@ namespace OtherNamespace
 {
     public partial class OtherWrapper : IOther
     {
+        /// <summary>
+        /// The conversion operator for wrapping the <see cref="OtherNamespace.Other"/> object.
+        /// </summary>
+        /// <param name="object">The object to wrap.</param>
         public static implicit operator OtherWrapper(OtherNamespace.Other @object) => @object != null ? new OtherWrapper(@object) : null;
 
+        /// <summary>
+        /// The conversion operator for unwrapping the <see cref="OtherNamespace.Other"/> object.
+        /// </summary>
+        /// <param name="object">The object to unwrap.</param>
         public static implicit operator OtherNamespace.Other(OtherWrapper @object) => @object?.Object;
 
+        /// <summary>
+        /// The wrapped object.
+        /// </summary>
         public OtherNamespace.Other Object { get; private set; }
 
         public int? Count { get => Object.Count; set => Object.Count = value; }
@@ -43,13 +54,26 @@ namespace OtherNamespace
             }
         }
 
+        /// <summary>
+        /// The wrapper constructor.
+        /// </summary>
+        /// <param name="object">The object to wrap.</param>
         public OtherWrapper(OtherNamespace.Other @object)
         {
             Object = @object ?? throw new ArgumentNullException(nameof(@object));
         }
 
+        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current object.</param>
+        /// <returns>true if the specified object is equal to the current object; otherwise, false.</returns>
         public override bool Equals(object obj) => Object.Equals(obj is OtherWrapper o ? o.Object : obj);
 
+        /// <summary>
+        /// Serves as the default hash function.
+        /// </summary>
+        /// <returns>A hash code for the current object.</returns>
         public override int GetHashCode() => Object.GetHashCode();
     }
 }

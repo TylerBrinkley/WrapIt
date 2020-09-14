@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Xml.Linq;
 
 namespace WrapIt
 {
@@ -17,6 +18,10 @@ namespace WrapIt
         public List<MethodData> Methods { get; private set; } = new List<MethodData>();
 
         public List<EventData> Events { get; private set; } = new List<EventData>();
+
+        public IEnumerable<XElement> Documentation { get; set; } = Enumerable.Empty<XElement>();
+
+        public string? ObsoleteMessage { get; set; }
 
         protected TypeMembersData(Type type, TypeName name)
             : base(type, name)
@@ -35,11 +40,21 @@ namespace WrapIt
 
         protected virtual Type[] GetInterfaces() => Type.GetInterfaces();
 
-        public void Initialize(WrapperBuilder builder, HashSet<TypeData> typeDatas, BindingFlags bindingFlags)
+        public void Initialize(WrapperBuilder builder, DocumentationProvider? documentationProvider, HashSet<TypeData> typeDatas, BindingFlags bindingFlags)
         {
             if (_initialized)
             {
                 return;
+            }
+
+            if (documentationProvider != null)
+            {
+                Documentation = documentationProvider.GetDocumentation(Type);
+            }
+            var obsoleteAttribute = Type.GetCustomAttribute<ObsoleteAttribute>();
+            if (obsoleteAttribute != null)
+            {
+                ObsoleteMessage = obsoleteAttribute.Message?.Replace("\"", "\\\"") ?? string.Empty;
             }
 
             var isIEnumerable = false;
@@ -61,7 +76,7 @@ namespace WrapIt
                         }
                     }
                     var interfaceTypeData = (InterfaceData)builder.GetTypeData(@interface, typeDatas);
-                    interfaceTypeData.Initialize(builder, typeDatas, bindingFlags);
+                    interfaceTypeData.Initialize(builder, documentationProvider, typeDatas, bindingFlags);
                     Interfaces.Add(interfaceTypeData);
                 }
             }
@@ -97,6 +112,15 @@ namespace WrapIt
                             {
                                 propertyData.DeclaringInterfaceType = @interface;
                             }
+                        }
+                        if (documentationProvider != null)
+                        {
+                            propertyData.Documentation = documentationProvider.GetDocumentation(property);
+                        }
+                        obsoleteAttribute = property.GetCustomAttribute<ObsoleteAttribute>();
+                        if (obsoleteAttribute != null)
+                        {
+                            propertyData.ObsoleteMessage = obsoleteAttribute.Message?.Replace("\"", "\\\"") ?? string.Empty;
                         }
                         Properties.Add(propertyData);
                     }
@@ -143,6 +167,15 @@ namespace WrapIt
                                 methodData.DeclaringInterfaceType = @interface;
                             }
                         }
+                        if (documentationProvider != null)
+                        {
+                            methodData.Documentation = documentationProvider.GetDocumentation(method);
+                        }
+                        obsoleteAttribute = method.GetCustomAttribute<ObsoleteAttribute>();
+                        if (obsoleteAttribute != null)
+                        {
+                            methodData.ObsoleteMessage = obsoleteAttribute.Message?.Replace("\"", "\\\"") ?? string.Empty;
+                        }
                         Methods.Add(methodData);
                     }
                 }
@@ -181,7 +214,7 @@ namespace WrapIt
                     if (genericArg != null)
                     {
                         var interfaceTypeData = (InterfaceData)builder.GetTypeData(typeof(IEnumerable<>).MakeGenericType(genericArg.Type), typeDatas);
-                        interfaceTypeData.Initialize(builder, typeDatas, bindingFlags);
+                        interfaceTypeData.Initialize(builder, documentationProvider, typeDatas, bindingFlags);
                         Interfaces.Add(interfaceTypeData);
                         for (var i = 0; i < Methods.Count; ++i)
                         {
@@ -234,6 +267,15 @@ namespace WrapIt
                             {
                                 eventData.DeclaringInterfaceType = @interface;
                             }
+                        }
+                        if (documentationProvider != null)
+                        {
+                            eventData.Documentation = documentationProvider.GetDocumentation(@event);
+                        }
+                        obsoleteAttribute = @event.GetCustomAttribute<ObsoleteAttribute>();
+                        if (obsoleteAttribute != null)
+                        {
+                            eventData.ObsoleteMessage = obsoleteAttribute.Message?.Replace("\"", "\\\"") ?? string.Empty;
                         }
                         Events.Add(eventData);
                     }
