@@ -32,7 +32,7 @@ namespace WrapIt
             }
         }
 
-        public override async Task BuildAsync(WrapperBuilder builder, HashSet<TypeData> typeDatas, Func<Type, string, CancellationToken, Task<TextWriter>> writerProvider, CancellationToken cancellationToken = default)
+        public override async Task BuildAsync(WrapperBuilder builder, HashSet<TypeData> typeDatas, Func<Type, string, CancellationToken, Task<TextWriter>> writerProvider, DocumentationProvider? documentationProvider, CancellationToken cancellationToken = default)
         {
             BuildStatus = TypeBuildStatus.Building;
 
@@ -59,6 +59,14 @@ namespace WrapIt
 
                 await writer.WriteLineAsync($"namespace {@namespace}").ConfigureAwait(false);
                 await writer.WriteLineAsync("{").ConfigureAwait(false);
+                if (documentationProvider != null)
+                {
+                    var documentation = documentationProvider.GetDocumentation(Type);
+                    if (documentation.Any())
+                    {
+                        await writer.WriteLineAsync(string.Join(Environment.NewLine, documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"    /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                    }
+                }
                 await writer.WriteLineAsync($"    public delegate {ReturnType.InterfaceName} {InterfaceName}({string.Join(", ", Parameters.Select(p => p.GetAsInterfaceParameter()))});").ConfigureAwait(false);
                 await writer.WriteAsync("}").ConfigureAwait(false);
                 await writer.FlushAsync().ConfigureAwait(false);

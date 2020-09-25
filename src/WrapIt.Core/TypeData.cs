@@ -71,7 +71,7 @@ namespace WrapIt
 
         public override string ToString() => Type.ToString();
 
-        public virtual Task BuildAsync(WrapperBuilder builder, HashSet<TypeData> typeDatas, Func<Type, string, CancellationToken, Task<TextWriter>> writerProvider, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public virtual Task BuildAsync(WrapperBuilder builder, HashSet<TypeData> typeDatas, Func<Type, string, CancellationToken, Task<TextWriter>> writerProvider, DocumentationProvider? documentationProvider, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
         public virtual string GetCodeToConvertToActualType(string parameterName) => parameterName;
 

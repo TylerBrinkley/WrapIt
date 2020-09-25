@@ -7,10 +7,21 @@ namespace Company
 {
     public sealed partial class DerivedWrapper : BaseWrapper, IDerived
     {
+        /// <summary>
+        /// The conversion operator for wrapping the <see cref="Company.Derived"/> object.
+        /// </summary>
+        /// <param name="object">The object to wrap.</param>
         public static implicit operator DerivedWrapper(Company.Derived @object) => @object != null ? new DerivedWrapper(@object) : null;
 
+        /// <summary>
+        /// The conversion operator for unwrapping the <see cref="Company.Derived"/> object.
+        /// </summary>
+        /// <param name="object">The object to unwrap.</param>
         public static implicit operator Company.Derived(DerivedWrapper @object) => @object?.Object;
 
+        /// <summary>
+        /// The wrapped object.
+        /// </summary>
         public new Company.Derived Object => (Company.Derived)base.Object;
 
         public ArrayWrapper<Company.Base, BaseWrapper, IBase> Array { get => Object.Array; set => Object.Array = value?.ToCollection(); }
@@ -33,6 +44,10 @@ namespace Company
 
         public List<string> Names { get => Object.Names; set => Object.Names = value; }
 
+        /// <summary>
+        /// The wrapper constructor.
+        /// </summary>
+        /// <param name="object">The object to wrap.</param>
         public DerivedWrapper(Company.Derived @object)
             : base(@object)
         {

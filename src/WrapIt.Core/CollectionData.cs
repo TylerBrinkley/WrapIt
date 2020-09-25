@@ -18,7 +18,7 @@ namespace WrapIt
             DependentTypes.UnionWith(elementType.GetPublicTypes());
         }
 
-        public override async Task BuildAsync(WrapperBuilder builder, HashSet<TypeData> typeDatas, Func<Type, string, CancellationToken, Task<TextWriter>> writerProvider, CancellationToken cancellationToken = default)
+        public override async Task BuildAsync(WrapperBuilder builder, HashSet<TypeData> typeDatas, Func<Type, string, CancellationToken, Task<TextWriter>> writerProvider, DocumentationProvider? documentationProvider, CancellationToken cancellationToken = default)
         {
             BuildStatus = TypeBuildStatus.Built;
 
@@ -26,7 +26,7 @@ namespace WrapIt
             {
                 if (dependentType.BuildStatus == TypeBuildStatus.NotYetBuilt)
                 {
-                    await dependentType.BuildAsync(builder, typeDatas, writerProvider, cancellationToken).ConfigureAwait(false);
+                    await dependentType.BuildAsync(builder, typeDatas, writerProvider, documentationProvider, cancellationToken).ConfigureAwait(false);
                 }
             }
         }

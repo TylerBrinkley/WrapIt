@@ -29,7 +29,7 @@ namespace WrapIt
 
         protected override Type[] GetInterfaces() => IsStatic ? Array.Empty<Type>() : base.GetInterfaces();
 
-        public override async Task BuildAsync(WrapperBuilder builder, HashSet<TypeData> typeDatas, Func<Type, string, CancellationToken, Task<TextWriter>> writerProvider, CancellationToken cancellationToken = default)
+        public override async Task BuildAsync(WrapperBuilder builder, HashSet<TypeData> typeDatas, Func<Type, string, CancellationToken, Task<TextWriter>> writerProvider, DocumentationProvider? documentationProvider, CancellationToken cancellationToken = default)
         {
             BuildStatus = TypeBuildStatus.Building;
 
@@ -39,11 +39,11 @@ namespace WrapIt
                 bindingFlags |= BindingFlags.DeclaredOnly;
                 if (BaseType.BuildStatus == TypeBuildStatus.NotYetBuilt)
                 {
-                    await BaseType.BuildAsync(builder, typeDatas, writerProvider, cancellationToken).ConfigureAwait(false);
+                    await BaseType.BuildAsync(builder, typeDatas, writerProvider, documentationProvider, cancellationToken).ConfigureAwait(false);
                 }
             }
 
-            Initialize(builder, typeDatas, bindingFlags);
+            Initialize(builder, documentationProvider, typeDatas, bindingFlags);
 
             var interfaceUsingDirectives = new HashSet<string>();
             var classUsingDirectives = new HashSet<string>();
@@ -80,6 +80,35 @@ namespace WrapIt
                 classUsingDirectives.Add("System.Threading");
             }
 
+            if (ObsoleteMessage != null)
+            {
+                interfaceUsingDirectives.Add("System");
+            }
+
+            foreach (var property in Properties)
+            {
+                if (property.ObsoleteMessage != null)
+                {
+                    interfaceUsingDirectives.Add("System");
+                }
+            }
+
+            foreach (var @event in Events)
+            {
+                if (@event.ObsoleteMessage != null)
+                {
+                    interfaceUsingDirectives.Add("System");
+                }
+            }
+
+            foreach (var method in Methods)
+            {
+                if (method.ObsoleteMessage != null)
+                {
+                    interfaceUsingDirectives.Add("System");
+                }
+            }
+
             classUsingDirectives.UnionWith(interfaceUsingDirectives);
 
             await WriteInterfaceAsync(writerProvider, interfaceUsingDirectives, cancellationToken).ConfigureAwait(false);
@@ -92,7 +121,7 @@ namespace WrapIt
             {
                 if (dependentType.BuildStatus == TypeBuildStatus.NotYetBuilt)
                 {
-                    await dependentType.BuildAsync(builder, typeDatas, writerProvider, cancellationToken).ConfigureAwait(false);
+                    await dependentType.BuildAsync(builder, typeDatas, writerProvider, documentationProvider, cancellationToken).ConfigureAwait(false);
                 }
             }
         }
@@ -128,6 +157,14 @@ namespace WrapIt
 
                 await writer.WriteLineAsync($"namespace {interfaceNamespace}").ConfigureAwait(false);
                 await writer.WriteLineAsync("{").ConfigureAwait(false);
+                if (Documentation.Any())
+                {
+                    await writer.WriteLineAsync(string.Join(Environment.NewLine, Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"    /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                }
+                if (ObsoleteMessage != null)
+                {
+                    await writer.WriteLineAsync($"    [Obsolete{(ObsoleteMessage.Length > 0 ? $"(\"{ObsoleteMessage}\")" : string.Empty)}]");
+                }
                 var interfaces = (BaseType != null ? new[] { BaseType } : Enumerable.Empty<TypeData>()).Concat(Interfaces).ToList();
                 await writer.WriteLineAsync($"    public partial interface {InterfaceName}{(interfaces.Count > 0 ? $" : {string.Join(", ", interfaces.Select(i => i.InterfaceName))}" : string.Empty)}").ConfigureAwait(false);
                 await writer.WriteLineAsync("    {").ConfigureAwait(false);
@@ -138,6 +175,14 @@ namespace WrapIt
                     if (property.DeclaringInterfaceType == null)
                     {
                         addLine = true;
+                        if (property.Documentation.Any())
+                        {
+                            await writer.WriteLineAsync(string.Join(Environment.NewLine, property.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                        }
+                        if (property.ObsoleteMessage != null)
+                        {
+                            await writer.WriteLineAsync($"        [Obsolete{(property.ObsoleteMessage.Length > 0 ? $"(\"{property.ObsoleteMessage}\")" : string.Empty)}]");
+                        }
                         if (property.Parameters.Count > 0)
                         {
                             await writer.WriteLineAsync($"        {property.Type.InterfaceName} this[{string.Join(", ", property.Parameters.Select(p => p.GetAsInterfaceParameter()))}] {{ {(property.HasGetter ? "get; " : string.Empty)}{(property.HasSetter ? "set; " : string.Empty)}}}").ConfigureAwait(false);
@@ -162,6 +207,14 @@ namespace WrapIt
                             }
                             first = false;
                             addLine = true;
+                            if (@event.Documentation.Any())
+                            {
+                                await writer.WriteLineAsync(string.Join(Environment.NewLine, @event.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                            }
+                            if (@event.ObsoleteMessage != null)
+                            {
+                                await writer.WriteLineAsync($"        [Obsolete{(@event.ObsoleteMessage.Length > 0 ? $"(\"{@event.ObsoleteMessage}\")" : string.Empty)}]");
+                            }
                             await writer.WriteLineAsync($"        event {@event.Type.InterfaceName} {@event.Name};").ConfigureAwait(false);
                         }
                     }
@@ -180,6 +233,14 @@ namespace WrapIt
                                 await writer.WriteLineAsync().ConfigureAwait(false);
                             }
                             first = false;
+                            if (method.Documentation.Any())
+                            {
+                                await writer.WriteLineAsync(string.Join(Environment.NewLine, method.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                            }
+                            if (method.ObsoleteMessage != null)
+                            {
+                                await writer.WriteLineAsync($"        [Obsolete{(method.ObsoleteMessage.Length > 0 ? $"(\"{method.ObsoleteMessage}\")" : string.Empty)}]");
+                            }
                             await writer.WriteLineAsync($"        {method.ReturnType.InterfaceName} {method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetAsInterfaceParameter()))});").ConfigureAwait(false);
                         }
                     }
@@ -210,6 +271,14 @@ namespace WrapIt
 
                 await writer.WriteLineAsync($"namespace {classNamespace}").ConfigureAwait(false);
                 await writer.WriteLineAsync("{").ConfigureAwait(false);
+                if (Documentation.Any())
+                {
+                    await writer.WriteLineAsync(string.Join(Environment.NewLine, Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"    /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                }
+                if (ObsoleteMessage != null)
+                {
+                    await writer.WriteLineAsync($"    [Obsolete{(ObsoleteMessage.Length > 0 ? $"(\"{ObsoleteMessage}\")" : string.Empty)}]");
+                }
                 await writer.WriteLineAsync($"    public {(Type.IsSealed ? "sealed " : string.Empty)}partial class {ClassName} : {(BaseType is null ? string.Empty : $"{BaseType.ClassName}, ")}{InterfaceName}").ConfigureAwait(false);
                 await writer.WriteLineAsync("    {").ConfigureAwait(false);
 
@@ -217,6 +286,13 @@ namespace WrapIt
                 var accessorName = IsStatic ? typeFullName : ObjectName;
                 if (!IsStatic)
                 {
+                    if (builder.IncludeDocumentation)
+                    {
+                        await writer.WriteLineAsync($@"        /// <summary>
+        /// The conversion operator for wrapping the <see cref=""{typeFullName}""/> object.
+        /// </summary>
+        /// <param name=""object"">The object to wrap.</param>").ConfigureAwait(false);
+                    }
                     if (DirectDerivedTypes.Count == 0)
                     {
                         await writer.WriteLineAsync($"        public static implicit operator {ClassName}({typeFullName} {ObjectParamName}) => {ObjectParamName} != null ? new {ClassName}({ObjectParamName}) : null;").ConfigureAwait(false);
@@ -275,9 +351,23 @@ namespace WrapIt
                         }
                     }
                     await writer.WriteLineAsync().ConfigureAwait(false);
+
+                    if (builder.IncludeDocumentation)
+                    {
+                        await writer.WriteLineAsync($@"        /// <summary>
+        /// The conversion operator for unwrapping the <see cref=""{typeFullName}""/> object.
+        /// </summary>
+        /// <param name=""object"">The object to unwrap.</param>").ConfigureAwait(false);
+                    }
                     await writer.WriteLineAsync($"        public static implicit operator {typeFullName}({ClassName} {ObjectParamName}) => {ObjectParamName}?.{ObjectName};").ConfigureAwait(false);
                     await writer.WriteLineAsync().ConfigureAwait(false);
 
+                    if (builder.IncludeDocumentation)
+                    {
+                        await writer.WriteLineAsync(@"        /// <summary>
+        /// The wrapped object.
+        /// </summary>").ConfigureAwait(false);
+                    }
                     if (BaseType != null)
                     {
                         await writer.WriteLineAsync($"        public new {typeFullName} {ObjectName} => ({typeFullName})base.{ObjectName};").ConfigureAwait(false);
@@ -304,6 +394,14 @@ namespace WrapIt
                             {
                                 throw new NotSupportedException("Caching is not supported for indexers.");
                             }
+                            if (property.Documentation.Any())
+                            {
+                                await writer.WriteLineAsync(string.Join(Environment.NewLine, property.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                            }
+                            if (property.ObsoleteMessage != null)
+                            {
+                                await writer.WriteLineAsync($"        [Obsolete{(property.ObsoleteMessage.Length > 0 ? $"(\"{property.ObsoleteMessage}\")" : string.Empty)}]");
+                            }
                             var basicArgumentList = string.Join(", ", property.Parameters.Select(p => p.GetAsArgument()));
                             await writer.WriteLineAsync($"        public {property.Type.ClassName} this[{string.Join(", ", property.Parameters.Select(p => p.GetAsClassParameter()))}] {(property.HasGetter && !property.HasSetter ? $"=> {property.Type.GetCodeToConvertFromActualType($"{accessorName}[{basicArgumentList}]")};" : $"{{ {(property.HasGetter ? $"get {(builder.MinCSharpVersion >= 7M ? "=>" : "{ return")} {property.Type.GetCodeToConvertFromActualType($"{accessorName}[{basicArgumentList}]")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}{(property.HasSetter ? $"set {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {accessorName}[{basicArgumentList}] = {property.Type.GetCodeToConvertToActualType("value")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}}}")}").ConfigureAwait(false);
                             if (property.Type.InterfaceName != property.Type.ClassName || property.Parameters.Any(p => p.Type.ClassName != p.Type.InterfaceName))
@@ -325,15 +423,35 @@ namespace WrapIt
                                 var fieldName = $"_{variableName}";
                                 await writer.WriteLineAsync($"        private {property.Type.ClassName} {fieldName};").ConfigureAwait(false);
                                 await writer.WriteLineAsync().ConfigureAwait(false);
+                                if (property.Documentation.Any())
+                                {
+                                    await writer.WriteLineAsync(string.Join(Environment.NewLine, property.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                                }
+                                if (property.ObsoleteMessage != null)
+                                {
+                                    await writer.WriteLineAsync($"        [Obsolete{(property.ObsoleteMessage.Length > 0 ? $"(\"{property.ObsoleteMessage}\")" : string.Empty)}]");
+                                }
                                 await writer.WriteLineAsync($"        public {property.Type.ClassName} {property.Name} {{ get {{ var {variableName} = {fieldName}; return {variableName} ?? Interlocked.CompareExchange(ref {fieldName}, {variableName} = {property.Type.GetCodeToConvertFromActualType($"{accessorName}.{property.Name}")}, null) ?? {variableName}; }} {(property.HasSetter ? $"set {{ {accessorName}.{property.Name} = {property.Type.GetCodeToConvertToActualType("value")}; {fieldName} = null; }} " : string.Empty)}}}").ConfigureAwait(false);
                             }
                             else
                             {
+                                if (property.Documentation.Any())
+                                {
+                                    await writer.WriteLineAsync(string.Join(Environment.NewLine, property.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                                }
+                                if (property.ObsoleteMessage != null)
+                                {
+                                    await writer.WriteLineAsync($"        [Obsolete{(property.ObsoleteMessage.Length > 0 ? $"(\"{property.ObsoleteMessage}\")" : string.Empty)}]");
+                                }
                                 await writer.WriteLineAsync($"        public {property.Type.ClassName} {property.Name} {(property.HasGetter && !property.HasSetter ? $"=> {property.Type.GetCodeToConvertFromActualType($"{accessorName}.{property.Name}")};" : $"{{ {(property.HasGetter ? $"get {(builder.MinCSharpVersion >= 7M ? "=>" : "{ return")} {property.Type.GetCodeToConvertFromActualType($"{accessorName}.{property.Name}")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}{(property.HasSetter ? $"set {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {accessorName}.{property.Name} = {property.Type.GetCodeToConvertToActualType("value")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}}}")}").ConfigureAwait(false);
                             }
                             if (property.Type.InterfaceName != property.Type.ClassName)
                             {
                                 await writer.WriteLineAsync().ConfigureAwait(false);
+                                if (property.ObsoleteMessage != null)
+                                {
+                                    await writer.WriteLineAsync("        [Obsolete]").ConfigureAwait(false);
+                                }
                                 await writer.WriteLineAsync($"        {property.Type.InterfaceName} {property.DeclaringInterfaceType?.InterfaceName ?? InterfaceName}.{property.Name} {(property.HasGetter && !property.HasSetter ? $"=> {property.Name};" : $"{{ {(property.HasGetter ? $"get {(builder.MinCSharpVersion >= 7M ? "=>" : "{ return")} {property.Name};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}{(property.HasSetter ? $"set {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {property.Name} = {property.Type.GetCodeToConvertToClassType("value")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}}}")}").ConfigureAwait(false);
                             }
                         }
@@ -381,6 +499,14 @@ namespace WrapIt
                         {
                             await writer.WriteLineAsync($"#if {builder.DefaultMemberGenerationCompilerFlag}").ConfigureAwait(false);
                         }
+                        if (@event.Documentation.Any())
+                        {
+                            await writer.WriteLineAsync(string.Join(Environment.NewLine, @event.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                        }
+                        if (@event.ObsoleteMessage != null)
+                        {
+                            await writer.WriteLineAsync($"        [Obsolete{(@event.ObsoleteMessage.Length > 0 ? $"(\"{@event.ObsoleteMessage}\")" : string.Empty)}]");
+                        }
                         await writer.WriteLineAsync($"        public event {@event.Type.InterfaceName} {@event.Name}").ConfigureAwait(false);
                         await writer.WriteLineAsync("        {").ConfigureAwait(false);
                         if (IsStatic && @event.Type.ClassName == @event.Type.InterfaceName)
@@ -424,12 +550,25 @@ namespace WrapIt
 
                 if (IsStatic)
                 {
+                    if (builder.IncludeDocumentation)
+                    {
+                        await writer.WriteLineAsync($@"        /// <summary>
+        /// The wrapper constructor.
+        /// </summary>").ConfigureAwait(false);
+                    }
                     await writer.WriteLineAsync($"        public {ClassName}()").ConfigureAwait(false);
                     await writer.WriteLineAsync("        {").ConfigureAwait(false);
                     await writer.WriteLineAsync("        }").ConfigureAwait(false);
                 }
                 else
                 {
+                    if (builder.IncludeDocumentation)
+                    {
+                        await writer.WriteLineAsync($@"        /// <summary>
+        /// The wrapper constructor.
+        /// </summary>
+        /// <param name=""object"">The object to wrap.</param>").ConfigureAwait(false);
+                    }
                     await writer.WriteLineAsync($"        public {ClassName}({typeFullName} {ObjectParamName})").ConfigureAwait(false);
                     if (BaseType != null)
                     {
@@ -470,6 +609,14 @@ namespace WrapIt
                         {
                             await writer.WriteLineAsync($"#if {builder.DefaultMemberGenerationCompilerFlag}").ConfigureAwait(false);
                         }
+                        if (method.Documentation.Any())
+                        {
+                            await writer.WriteLineAsync(string.Join(Environment.NewLine, method.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                        }
+                        if (method.ObsoleteMessage != null)
+                        {
+                            await writer.WriteLineAsync($"        [Obsolete{(method.ObsoleteMessage.Length > 0 ? $"(\"{method.ObsoleteMessage}\")" : string.Empty)}]");
+                        }
                         var isGenericGetEnumerator = method.Name == "GetEnumerator" && method.ReturnType.Type != typeof(IEnumerator);
                         if (isGenericGetEnumerator)
                         {
@@ -483,6 +630,14 @@ namespace WrapIt
                         }
                         else if (method.Name == "Equals" && method.OverrideObject)
                         {
+                            if (builder.IncludeDocumentation && !method.Documentation.Any())
+                            {
+                                await writer.WriteLineAsync(@"        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
+        /// <param name=""obj"">The object to compare with the current object.</param>
+        /// <returns>true if the specified object is equal to the current object; otherwise, false.</returns>").ConfigureAwait(false);
+                            }
                             var variableName = method.Parameters[0].Name != "o" ? "o" : "obj";
                             await writer.WriteLineAsync($"        public override bool Equals({method.Parameters[0].GetAsClassParameter()}) => {ObjectName}.Equals({method.Parameters[0].Name} is {ClassName} {(builder.MinCSharpVersion >= 7M ? $"{variableName} ? {variableName}" : $"? (({ClassName}){method.Parameters[0].Name})")}.{ObjectName} : {method.Parameters[0].Name});").ConfigureAwait(false);
                         }
@@ -493,6 +648,13 @@ namespace WrapIt
                         }
                         else
                         {
+                            if (builder.IncludeDocumentation && method.OverrideObject && !method.Documentation.Any())
+                            {
+                                await writer.WriteLineAsync(@"        /// <summary>
+        /// Serves as the default hash function.
+        /// </summary>
+        /// <returns>A hash code for the current object.</returns>").ConfigureAwait(false);
+                            }
                             await writer.WriteLineAsync($"        public {(method.OverrideObject ? "override " : string.Empty)}{method.ReturnType.ClassName} {method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetAsClassParameter()))}) => {method.ReturnType.GetCodeToConvertFromActualType($"{accessorName}.{method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetCodeToConvertToActualType()))})")};").ConfigureAwait(false);
                         }
                         if (method.ReturnType.ClassName != method.ReturnType.InterfaceName || method.Parameters.Any(p => p.Type.ClassName != p.Type.InterfaceName))
@@ -504,6 +666,10 @@ namespace WrapIt
                             }
                             else
                             {
+                                if (method.ObsoleteMessage != null)
+                                {
+                                    await writer.WriteLineAsync("        [Obsolete]").ConfigureAwait(false);
+                                }
                                 await writer.WriteLineAsync($"        {method.ReturnType.InterfaceName} {method.DeclaringInterfaceType?.InterfaceName ?? InterfaceName}.{method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetAsInterfaceParameter()))}) => {method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetCodeToConvertToClassType()))});").ConfigureAwait(false);
                             }
                         }
@@ -528,6 +694,13 @@ namespace WrapIt
                                 {
                                     if (method.ReturnType.Type.IsGenericType)
                                     {
+                                        if (builder.IncludeDocumentation)
+                                        {
+                                            await writer.WriteLineAsync(@"        /// <summary>
+        /// Returns an enumerator that iterates through the collection.
+        /// </summary>
+        /// <returns>An enumerator that can be used to iterate through the collection.</returns>").ConfigureAwait(false);
+                                        }
                                         await writer.WriteLineAsync($"        public {method.ReturnType.ClassName} GetEnumerator()").ConfigureAwait(false);
                                         await writer.WriteLineAsync("        {").ConfigureAwait(false);
                                         await writer.WriteLineAsync($"            foreach (var item in {ObjectName})").ConfigureAwait(false);
