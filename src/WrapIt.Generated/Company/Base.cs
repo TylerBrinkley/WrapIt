@@ -25,5 +25,9 @@ namespace Company
         }
 
         public override bool Equals(object obj) => base.Equals(obj);
+
+        public void ParamArrayTest(params Other[] others)
+        {
+        }
     }
 }

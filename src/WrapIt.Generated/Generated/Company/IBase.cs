@@ -17,5 +17,6 @@ namespace Company
         DateTime Raccoon { get; }
 
         void DoStuff(IOther other);
+        void ParamArrayTest(IList<IOther> others);
     }
 }
