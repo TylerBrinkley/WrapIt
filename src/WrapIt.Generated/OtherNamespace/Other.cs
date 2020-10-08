@@ -18,5 +18,9 @@ namespace OtherNamespace
         public string[] StringArray { get; set; }
 
         public event FieldChangeEventHandler FieldChange;
+
+        public void Open(params int[] indices)
+        {
+        }
     }
 }

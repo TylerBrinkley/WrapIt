@@ -101,7 +101,7 @@ namespace WrapIt
                                 var parameterType = parameter.ParameterType;
                                 var parameterTypeData = builder.GetTypeData(parameterType, typeDatas);
                                 DependentTypes.UnionWith(parameterTypeData.GetPublicTypes());
-                                parameters.Add(new ParameterData(parameterTypeData, parameter.Name, parameter.IsOut));
+                                parameters.Add(new ParameterData(parameterTypeData, parameter.Name, parameter.IsOut, parameter.GetCustomAttribute<ParamArrayAttribute>() != null));
                             }
                         }
 
@@ -155,7 +155,7 @@ namespace WrapIt
                                 var parameterType = parameter.ParameterType;
                                 var parameterTypeData = builder.GetTypeData(parameterType, typeDatas);
                                 DependentTypes.UnionWith(parameterTypeData.GetPublicTypes());
-                                parameters.Add(new ParameterData(parameterTypeData, parameter.Name, parameter.IsOut));
+                                parameters.Add(new ParameterData(parameterTypeData, parameter.Name, parameter.IsOut, parameter.GetCustomAttribute<ParamArrayAttribute>() != null));
                             }
                         }
 
@@ -256,7 +256,7 @@ namespace WrapIt
                                 var parameterType = parameter.ParameterType;
                                 var parameterTypeData = builder.GetTypeData(parameterType, typeDatas);
                                 DependentTypes.UnionWith(parameterTypeData.GetPublicTypes());
-                                parameters.Add(new ParameterData(parameterTypeData, parameter.Name, parameter.IsOut));
+                                parameters.Add(new ParameterData(parameterTypeData, parameter.Name, parameter.IsOut, parameter.GetCustomAttribute<ParamArrayAttribute>() != null));
                             }
                         }
 

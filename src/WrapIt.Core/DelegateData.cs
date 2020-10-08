@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -27,7 +28,7 @@ namespace WrapIt
                     var parameterType = parameter.ParameterType;
                     var parameterTypeData = builder.GetTypeData(parameterType, typeDatas);
                     DependentTypes.UnionWith(parameterTypeData.GetPublicTypes());
-                    Parameters.Add(new ParameterData(parameterTypeData, parameter.Name, parameter.IsOut));
+                    Parameters.Add(new ParameterData(parameterTypeData, parameter.Name, parameter.IsOut, parameter.GetCustomAttribute<ParamArrayAttribute>() != null));
                 }
             }
         }

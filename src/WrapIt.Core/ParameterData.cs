@@ -10,16 +10,19 @@ namespace WrapIt
 
         public bool IsOut { get; }
 
-        public ParameterData(TypeData type, string name, bool isOut)
+        public bool IsParamArray { get; }
+
+        public ParameterData(TypeData type, string name, bool isOut, bool isParamArray)
         {
             Type = type;
             Name = name;
             IsOut = isOut;
+            IsParamArray = type.BuildStatus == TypeBuildStatus.NotBuilding && isParamArray;
         }
 
-        public string GetAsInterfaceParameter() => $"{(Type.Type.IsByRef ? (IsOut ? "out " : "ref ") : string.Empty)}{Type.InterfaceName} {Name}";
+        public string GetAsInterfaceParameter() => $"{(Type.Type.IsByRef ? (IsOut ? "out " : "ref ") : (IsParamArray ? "params " : string.Empty))}{Type.InterfaceName} {Name}";
 
-        public string GetAsClassParameter() => $"{(Type.Type.IsByRef ? (IsOut ? "out " : "ref ") : string.Empty)}{Type.ClassName} {Name}";
+        public string GetAsClassParameter() => $"{(Type.Type.IsByRef ? (IsOut ? "out " : "ref ") : (IsParamArray ? "params " : string.Empty))}{Type.ClassName} {Name}";
 
         public string GetAsArgument() => $"{(Type.Type.IsByRef ? (IsOut ? "out " : "ref ") : string.Empty)}{Name}";
 

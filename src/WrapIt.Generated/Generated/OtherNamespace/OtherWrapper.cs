@@ -75,5 +75,7 @@ namespace OtherNamespace
         /// </summary>
         /// <returns>A hash code for the current object.</returns>
         public override int GetHashCode() => Object.GetHashCode();
+
+        public void Open(params int[] indices) => Object.Open(indices);
     }
 }
