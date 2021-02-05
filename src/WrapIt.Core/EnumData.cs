@@ -21,18 +21,18 @@ namespace WrapIt
             {
                 var underlyingType = Enum.GetUnderlyingType(Type);
                 var typeFullName = Type.FullName;
-                await writer.WriteLineAsync(@$"namespace {ClassName.Namespace}
-{{");
+                await writer.WriteLineAsync($@"namespace {ClassName.Namespace}").ConfigureAwait(false);
+                await writer.WriteLineAsync($@"{{").ConfigureAwait(false);
                 if (documentationProvider != null)
                 {
                     var documentation = documentationProvider.GetDocumentation(Type);
                     if (documentation.Any())
                     {
-                        await writer.WriteLineAsync(string.Join(Environment.NewLine, documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"    /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                        await writer.WriteLineAsync(string.Join(writer.NewLine, documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"    /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
                     }
                 }
-                await writer.WriteLineAsync(@$"    public enum {ClassName.Name}{(underlyingType != typeof(int) ? $" : {builder.GetTypeData(underlyingType, typeDatas).ClassName}" : string.Empty)}
-    {{");
+                await writer.WriteLineAsync($@"    public enum {ClassName.Name}{(underlyingType != typeof(int) ? $" : {builder.GetTypeData(underlyingType, typeDatas).ClassName}" : string.Empty)}").ConfigureAwait(false);
+                await writer.WriteLineAsync($@"    {{").ConfigureAwait(false);
                 var names = Enum.GetNames(Type);
                 for (var i = 0; i < names.Length; ++i)
                 {
@@ -42,14 +42,14 @@ namespace WrapIt
                         var documentation = documentationProvider.GetDocumentation(Type.GetField(name));
                         if (documentation.Any())
                         {
-                            await writer.WriteLineAsync(string.Join(Environment.NewLine, documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                            await writer.WriteLineAsync(string.Join(writer.NewLine, documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
                         }
                     }
                     await writer.WriteLineAsync($"        {name} = {typeFullName}.{name}{(i < names.Length - 1 ? "," : string.Empty)}").ConfigureAwait(false);
                 }
-                string.Join($",{Environment.NewLine}", Enum.GetNames(Type).Select(n => $"        {n} = {typeFullName}.{n}"));
-await writer.WriteLineAsync($@"    }}
-}}").ConfigureAwait(false);
+                string.Join($",{writer.NewLine}", Enum.GetNames(Type).Select(n => $"        {n} = {typeFullName}.{n}"));
+                await writer.WriteLineAsync($@"    }}").ConfigureAwait(false);
+                await writer.WriteLineAsync($@"}}").ConfigureAwait(false);
                 await writer.FlushAsync().ConfigureAwait(false);
             }
             BuildStatus = TypeBuildStatus.Built;

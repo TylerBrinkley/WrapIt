@@ -12,6 +12,7 @@ namespace OtherNamespace
 
         event FieldChangeEventHandlerWrapper FieldChange;
 
+        void InvokeFieldChange();
         void Open(params int[] indices);
     }
 }

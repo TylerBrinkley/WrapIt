@@ -65,7 +65,7 @@ namespace WrapIt
                     var documentation = documentationProvider.GetDocumentation(Type);
                     if (documentation.Any())
                     {
-                        await writer.WriteLineAsync(string.Join(Environment.NewLine, documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"    /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                        await writer.WriteLineAsync(string.Join(writer.NewLine, documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"    /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
                     }
                 }
                 await writer.WriteLineAsync($"    public delegate {ReturnType.InterfaceName} {InterfaceName}({string.Join(", ", Parameters.Select(p => p.GetAsInterfaceParameter()))});").ConfigureAwait(false);

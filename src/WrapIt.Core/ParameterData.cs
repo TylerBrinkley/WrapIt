@@ -24,6 +24,8 @@ namespace WrapIt
 
         public string GetAsClassParameter() => $"{(Type.Type.IsByRef ? (IsOut ? "out " : "ref ") : (IsParamArray ? "params " : string.Empty))}{Type.ClassName} {Name}";
 
+        public string GetAsActualParameter() => $"{(Type.Type.IsByRef ? (IsOut ? "out " : "ref ") : (IsParamArray ? "params " : string.Empty))}{Type.ActualName} {Name}";
+
         public string GetAsArgument() => $"{(Type.Type.IsByRef ? (IsOut ? "out " : "ref ") : string.Empty)}{Name}";
 
         public string GetCodeToConvertToActualType() => $"{(Type.Type.IsByRef ? (IsOut ? "out " : "ref ") : string.Empty)}{Type.GetCodeToConvertToActualType(Name)}";

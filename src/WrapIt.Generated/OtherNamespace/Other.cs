@@ -19,6 +19,11 @@ namespace OtherNamespace
 
         public event FieldChangeEventHandler FieldChange;
 
+        public void InvokeFieldChange()
+        {
+            FieldChange?.Invoke(this, new FieldChangeEventArgs());
+        }
+
         public void Open(params int[] indices)
         {
         }

@@ -99,6 +99,11 @@ namespace WrapIt
                 {
                     interfaceUsingDirectives.Add("System");
                 }
+                if (@event.Type.BuildStatus != TypeBuildStatus.NotBuilding)
+                {
+                    // For Interlocked
+                    classUsingDirectives.Add("System.Threading");
+                }
             }
 
             foreach (var method in Methods)
@@ -159,7 +164,7 @@ namespace WrapIt
                 await writer.WriteLineAsync("{").ConfigureAwait(false);
                 if (Documentation.Any())
                 {
-                    await writer.WriteLineAsync(string.Join(Environment.NewLine, Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"    /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                    await writer.WriteLineAsync(string.Join(writer.NewLine, Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"    /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
                 }
                 if (ObsoleteMessage != null)
                 {
@@ -177,7 +182,7 @@ namespace WrapIt
                         addLine = true;
                         if (property.Documentation.Any())
                         {
-                            await writer.WriteLineAsync(string.Join(Environment.NewLine, property.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                            await writer.WriteLineAsync(string.Join(writer.NewLine, property.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
                         }
                         if (property.ObsoleteMessage != null)
                         {
@@ -209,7 +214,7 @@ namespace WrapIt
                             addLine = true;
                             if (@event.Documentation.Any())
                             {
-                                await writer.WriteLineAsync(string.Join(Environment.NewLine, @event.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                                await writer.WriteLineAsync(string.Join(writer.NewLine, @event.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
                             }
                             if (@event.ObsoleteMessage != null)
                             {
@@ -235,7 +240,7 @@ namespace WrapIt
                             first = false;
                             if (method.Documentation.Any())
                             {
-                                await writer.WriteLineAsync(string.Join(Environment.NewLine, method.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                                await writer.WriteLineAsync(string.Join(writer.NewLine, method.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
                             }
                             if (method.ObsoleteMessage != null)
                             {
@@ -273,7 +278,7 @@ namespace WrapIt
                 await writer.WriteLineAsync("{").ConfigureAwait(false);
                 if (Documentation.Any())
                 {
-                    await writer.WriteLineAsync(string.Join(Environment.NewLine, Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"    /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                    await writer.WriteLineAsync(string.Join(writer.NewLine, Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"    /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
                 }
                 if (ObsoleteMessage != null)
                 {
@@ -288,10 +293,10 @@ namespace WrapIt
                 {
                     if (builder.IncludeDocumentation)
                     {
-                        await writer.WriteLineAsync($@"        /// <summary>
-        /// The conversion operator for wrapping the <see cref=""{typeFullName}""/> object.
-        /// </summary>
-        /// <param name=""object"">The object to wrap.</param>").ConfigureAwait(false);
+                        await writer.WriteLineAsync($@"        /// <summary>").ConfigureAwait(false);
+                        await writer.WriteLineAsync($@"        /// The conversion operator for wrapping the <see cref=""{typeFullName}""/> object.").ConfigureAwait(false);
+                        await writer.WriteLineAsync($@"        /// </summary>").ConfigureAwait(false);
+                        await writer.WriteLineAsync($@"        /// <param name=""object"">The object to wrap.</param>").ConfigureAwait(false);
                     }
                     if (DirectDerivedTypes.Count == 0)
                     {
@@ -354,19 +359,19 @@ namespace WrapIt
 
                     if (builder.IncludeDocumentation)
                     {
-                        await writer.WriteLineAsync($@"        /// <summary>
-        /// The conversion operator for unwrapping the <see cref=""{typeFullName}""/> object.
-        /// </summary>
-        /// <param name=""object"">The object to unwrap.</param>").ConfigureAwait(false);
+                        await writer.WriteLineAsync($@"        /// <summary>").ConfigureAwait(false);
+                        await writer.WriteLineAsync($@"        /// The conversion operator for unwrapping the <see cref=""{typeFullName}""/> object.").ConfigureAwait(false);
+                        await writer.WriteLineAsync($@"        /// </summary>").ConfigureAwait(false);
+                        await writer.WriteLineAsync($@"        /// <param name=""object"">The object to unwrap.</param>").ConfigureAwait(false);
                     }
                     await writer.WriteLineAsync($"        public static implicit operator {typeFullName}({ClassName} {ObjectParamName}) => {ObjectParamName}?.{ObjectName};").ConfigureAwait(false);
                     await writer.WriteLineAsync().ConfigureAwait(false);
 
                     if (builder.IncludeDocumentation)
                     {
-                        await writer.WriteLineAsync(@"        /// <summary>
-        /// The wrapped object.
-        /// </summary>").ConfigureAwait(false);
+                        await writer.WriteLineAsync("        /// <summary>").ConfigureAwait(false);
+                        await writer.WriteLineAsync("        /// The wrapped object.").ConfigureAwait(false);
+                        await writer.WriteLineAsync("        /// </summary>").ConfigureAwait(false);
                     }
                     if (BaseType != null)
                     {
@@ -396,7 +401,7 @@ namespace WrapIt
                             }
                             if (property.Documentation.Any())
                             {
-                                await writer.WriteLineAsync(string.Join(Environment.NewLine, property.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                                await writer.WriteLineAsync(string.Join(writer.NewLine, property.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
                             }
                             if (property.ObsoleteMessage != null)
                             {
@@ -425,7 +430,7 @@ namespace WrapIt
                                 await writer.WriteLineAsync().ConfigureAwait(false);
                                 if (property.Documentation.Any())
                                 {
-                                    await writer.WriteLineAsync(string.Join(Environment.NewLine, property.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                                    await writer.WriteLineAsync(string.Join(writer.NewLine, property.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
                                 }
                                 if (property.ObsoleteMessage != null)
                                 {
@@ -437,7 +442,7 @@ namespace WrapIt
                             {
                                 if (property.Documentation.Any())
                                 {
-                                    await writer.WriteLineAsync(string.Join(Environment.NewLine, property.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                                    await writer.WriteLineAsync(string.Join(writer.NewLine, property.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
                                 }
                                 if (property.ObsoleteMessage != null)
                                 {
@@ -501,7 +506,7 @@ namespace WrapIt
                         }
                         if (@event.Documentation.Any())
                         {
-                            await writer.WriteLineAsync(string.Join(Environment.NewLine, @event.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                            await writer.WriteLineAsync(string.Join(writer.NewLine, @event.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
                         }
                         if (@event.ObsoleteMessage != null)
                         {
@@ -513,31 +518,74 @@ namespace WrapIt
                         {
                             await writer.WriteLineAsync($"            add {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {accessorName}.{@event.Name} += value;{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")}").ConfigureAwait(false);
                             await writer.WriteLineAsync($"            remove {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {accessorName}.{@event.Name} -= value;{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")}").ConfigureAwait(false);
+                            await writer.WriteLineAsync("        }").ConfigureAwait(false);
                         }
                         else
                         {
-                            var eventHelperName = $"AddOrRemove{@event.Name}";
-                            await writer.WriteLineAsync($"            add {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {eventHelperName}(value, true);{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")}").ConfigureAwait(false);
-                            await writer.WriteLineAsync($"            remove {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {eventHelperName}(value, false);{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")}").ConfigureAwait(false);
-                            await writer.WriteLineAsync("        }").ConfigureAwait(false);
+                            var fieldName = $"_{char.ToLower(@event.Name[0])}{@event.Name.Substring(1)}";
+                            var handlerMethod = $"{@event.Name}Handler";
+                            var handlerVar1 = "handler";
+                            var handlerVar2 = "handler2";
+                            var combinedVar = "combined";
+                            var removedVar = "removed";
+                            await writer.WriteLineAsync($@"            add").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"            {{").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                if (value == null)").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                {{").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                    return;").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                }}").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                {@event.Type.InterfaceName} {handlerVar1};").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                {@event.Type.InterfaceName} {handlerVar2} = {fieldName};").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                {@event.Type.InterfaceName} {combinedVar};").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                do").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                {{").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                    {handlerVar1} = {handlerVar2};").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                    {combinedVar} = ({@event.Type.InterfaceName})Delegate.Combine({handlerVar1}, value);").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                    {handlerVar2} = Interlocked.CompareExchange(ref {fieldName}, {combinedVar}, {handlerVar1});").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                }} while ({handlerVar1} != {handlerVar2});").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                if ({handlerVar1} == null)").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                {{").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                    {accessorName}.{@event.Name} += {handlerMethod};").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                }}").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"            }}").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"            remove").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"            {{").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                if (value == null)").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                {{").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                    return;").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                }}").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                {@event.Type.InterfaceName} {handlerVar1};").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                {@event.Type.InterfaceName} {handlerVar2} = {fieldName};").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                {@event.Type.InterfaceName} {removedVar};").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                do").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                {{").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                    {handlerVar1} = {handlerVar2};").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                    {removedVar} = ({@event.Type.InterfaceName})Delegate.Remove({handlerVar1}, value);").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                    {handlerVar2} = Interlocked.CompareExchange(ref {fieldName}, {removedVar}, {handlerVar1});").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                }} while ({handlerVar1} != {handlerVar2});").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                if ({removedVar} == null)").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                {{").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                    {accessorName}.{@event.Name} -= {handlerMethod};").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"                }}").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"            }}").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"        }}").ConfigureAwait(false);
                             await writer.WriteLineAsync().ConfigureAwait(false);
-                            await writer.WriteLineAsync($"        private void {eventHelperName}({@event.Type.InterfaceName} value, bool toAdd)").ConfigureAwait(false);
-                            await writer.WriteLineAsync("        {").ConfigureAwait(false);
-                            await writer.WriteLineAsync("            if (value != null)").ConfigureAwait(false);
-                            await writer.WriteLineAsync("            {").ConfigureAwait(false);
-                            const string handlerName = "handler";
-                            await writer.WriteLineAsync($"                {@event.Type.ClassName} {handlerName} = ({string.Join(", ", @event.Type.Parameters.Select(p => p.GetAsArgument()))}) => value({string.Join(", ", @event.Type.Parameters.Select((p, i) => i == 0 && p.Type.Type == typeof(object) && !IsStatic ? $"{p.Name} is {typeFullName} {(builder.MinCSharpVersion >= 7M ? $"o ? ({ClassName})o" : $"? ({ClassName})({typeFullName}){p.Name}")} : {p.Name}" : p.Type.GetCodeToConvertFromActualTypeToInterface(p.Name)))});").ConfigureAwait(false);
-                            await writer.WriteLineAsync("                if (toAdd)").ConfigureAwait(false);
-                            await writer.WriteLineAsync("                {").ConfigureAwait(false);
-                            await writer.WriteLineAsync($"                    {accessorName}.{@event.Name} += {handlerName};").ConfigureAwait(false);
-                            await writer.WriteLineAsync("                }").ConfigureAwait(false);
-                            await writer.WriteLineAsync("                else").ConfigureAwait(false);
-                            await writer.WriteLineAsync("                {").ConfigureAwait(false);
-                            await writer.WriteLineAsync($"                    {accessorName}.{@event.Name} -= {handlerName};").ConfigureAwait(false);
-                            await writer.WriteLineAsync("                }").ConfigureAwait(false);
-                            await writer.WriteLineAsync("            }").ConfigureAwait(false);
+                            await writer.WriteLineAsync($@"        private {@event.Type.InterfaceName} {fieldName};").ConfigureAwait(false);
+                            await writer.WriteLineAsync().ConfigureAwait(false);
+                            await writer.WriteAsync($@"        private void {handlerMethod}({string.Join(", ", @event.Type.Parameters.Select(p => p.GetAsActualParameter()))})").ConfigureAwait(false);
+                            var body = $"{fieldName}?.Invoke({string.Join(", ", @event.Type.Parameters.Select((p, i) => i == 0 && p.Type.Type == typeof(object) && !IsStatic ? $"{p.Name} is {typeFullName} {(builder.MinCSharpVersion >= 7M ? $"o ? ({ClassName})o" : $"? ({ClassName})({typeFullName}){p.Name}")} : {p.Name}" : p.Type.GetCodeToConvertFromActualTypeToInterface(p.Name)))});";
+                            if (builder.MinCSharpVersion >= 7M)
+                            {
+                                await writer.WriteLineAsync($" => {body}").ConfigureAwait(false);
+                            }
+                            else
+                            {
+                                await writer.WriteLineAsync().ConfigureAwait(false);
+                                await writer.WriteLineAsync($@"        {{").ConfigureAwait(false);
+                                await writer.WriteLineAsync($@"            {body}").ConfigureAwait(false);
+                                await writer.WriteLineAsync($@"        }}").ConfigureAwait(false);
+                            }
                         }
-                        await writer.WriteLineAsync("        }").ConfigureAwait(false);
                         if (wrapInCompilerFlag)
                         {
                             await writer.WriteLineAsync("#endif").ConfigureAwait(false);
@@ -552,9 +600,9 @@ namespace WrapIt
                 {
                     if (builder.IncludeDocumentation)
                     {
-                        await writer.WriteLineAsync($@"        /// <summary>
-        /// The wrapper constructor.
-        /// </summary>").ConfigureAwait(false);
+                        await writer.WriteLineAsync($@"        /// <summary>").ConfigureAwait(false);
+                        await writer.WriteLineAsync($@"        /// The wrapper constructor.").ConfigureAwait(false);
+                        await writer.WriteLineAsync($@"        /// </summary>").ConfigureAwait(false);
                     }
                     await writer.WriteLineAsync($"        public {ClassName}()").ConfigureAwait(false);
                     await writer.WriteLineAsync("        {").ConfigureAwait(false);
@@ -564,10 +612,10 @@ namespace WrapIt
                 {
                     if (builder.IncludeDocumentation)
                     {
-                        await writer.WriteLineAsync($@"        /// <summary>
-        /// The wrapper constructor.
-        /// </summary>
-        /// <param name=""object"">The object to wrap.</param>").ConfigureAwait(false);
+                        await writer.WriteLineAsync($@"        /// <summary>").ConfigureAwait(false);
+                        await writer.WriteLineAsync($@"        /// The wrapper constructor.").ConfigureAwait(false);
+                        await writer.WriteLineAsync($@"        /// </summary>").ConfigureAwait(false);
+                        await writer.WriteLineAsync($@"        /// <param name=""object"">The object to wrap.</param>").ConfigureAwait(false);
                     }
                     await writer.WriteLineAsync($"        public {ClassName}({typeFullName} {ObjectParamName})").ConfigureAwait(false);
                     if (BaseType != null)
@@ -611,7 +659,7 @@ namespace WrapIt
                         }
                         if (method.Documentation.Any())
                         {
-                            await writer.WriteLineAsync(string.Join(Environment.NewLine, method.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                            await writer.WriteLineAsync(string.Join(writer.NewLine, method.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
                         }
                         if (method.ObsoleteMessage != null)
                         {
@@ -632,11 +680,11 @@ namespace WrapIt
                         {
                             if (builder.IncludeDocumentation && !method.Documentation.Any())
                             {
-                                await writer.WriteLineAsync(@"        /// <summary>
-        /// Determines whether the specified object is equal to the current object.
-        /// </summary>
-        /// <param name=""obj"">The object to compare with the current object.</param>
-        /// <returns>true if the specified object is equal to the current object; otherwise, false.</returns>").ConfigureAwait(false);
+                                await writer.WriteLineAsync(@"        /// <summary>").ConfigureAwait(false);
+                                await writer.WriteLineAsync(@"        /// Determines whether the specified object is equal to the current object.").ConfigureAwait(false);
+                                await writer.WriteLineAsync(@"        /// </summary>").ConfigureAwait(false);
+                                await writer.WriteLineAsync(@"        /// <param name=""obj"">The object to compare with the current object.</param>").ConfigureAwait(false);
+                                await writer.WriteLineAsync(@"        /// <returns>true if the specified object is equal to the current object; otherwise, false.</returns>").ConfigureAwait(false);
                             }
                             var variableName = method.Parameters[0].Name != "o" ? "o" : "obj";
                             await writer.WriteLineAsync($"        public override bool Equals({method.Parameters[0].GetAsClassParameter()}) => {ObjectName}.Equals({method.Parameters[0].Name} is {ClassName} {(builder.MinCSharpVersion >= 7M ? $"{variableName} ? {variableName}" : $"? (({ClassName}){method.Parameters[0].Name})")}.{ObjectName} : {method.Parameters[0].Name});").ConfigureAwait(false);
@@ -650,10 +698,10 @@ namespace WrapIt
                         {
                             if (builder.IncludeDocumentation && method.OverrideObject && !method.Documentation.Any())
                             {
-                                await writer.WriteLineAsync(@"        /// <summary>
-        /// Serves as the default hash function.
-        /// </summary>
-        /// <returns>A hash code for the current object.</returns>").ConfigureAwait(false);
+                                await writer.WriteLineAsync(@"        /// <summary>").ConfigureAwait(false);
+                                await writer.WriteLineAsync(@"        /// Serves as the default hash function.").ConfigureAwait(false);
+                                await writer.WriteLineAsync(@"        /// </summary>").ConfigureAwait(false);
+                                await writer.WriteLineAsync(@"        /// <returns>A hash code for the current object.</returns>").ConfigureAwait(false);
                             }
                             await writer.WriteLineAsync($"        public {(method.OverrideObject ? "override " : string.Empty)}{method.ReturnType.ClassName} {method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetAsClassParameter()))}) => {method.ReturnType.GetCodeToConvertFromActualType($"{accessorName}.{method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetCodeToConvertToActualType()))})")};").ConfigureAwait(false);
                         }
@@ -696,10 +744,10 @@ namespace WrapIt
                                     {
                                         if (builder.IncludeDocumentation)
                                         {
-                                            await writer.WriteLineAsync(@"        /// <summary>
-        /// Returns an enumerator that iterates through the collection.
-        /// </summary>
-        /// <returns>An enumerator that can be used to iterate through the collection.</returns>").ConfigureAwait(false);
+                                            await writer.WriteLineAsync(@"        /// <summary>").ConfigureAwait(false);
+                                            await writer.WriteLineAsync(@"        /// Returns an enumerator that iterates through the collection.").ConfigureAwait(false);
+                                            await writer.WriteLineAsync(@"        /// </summary>").ConfigureAwait(false);
+                                            await writer.WriteLineAsync(@"        /// <returns>An enumerator that can be used to iterate through the collection.</returns>").ConfigureAwait(false);
                                         }
                                         await writer.WriteLineAsync($"        public {method.ReturnType.ClassName} GetEnumerator()").ConfigureAwait(false);
                                         await writer.WriteLineAsync("        {").ConfigureAwait(false);

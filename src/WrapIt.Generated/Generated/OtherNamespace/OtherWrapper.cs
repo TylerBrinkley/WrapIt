@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using Company;
 
 namespace OtherNamespace
@@ -34,25 +35,51 @@ namespace OtherNamespace
 
         public event FieldChangeEventHandlerWrapper FieldChange
         {
-            add => AddOrRemoveFieldChange(value, true);
-            remove => AddOrRemoveFieldChange(value, false);
-        }
-
-        private void AddOrRemoveFieldChange(FieldChangeEventHandlerWrapper value, bool toAdd)
-        {
-            if (value != null)
+            add
             {
-                OtherNamespace.FieldChangeEventHandler handler = (source, e) => value(source is OtherNamespace.Other o ? (OtherWrapper)o : source, (FieldChangeEventArgsWrapper)e);
-                if (toAdd)
+                if (value == null)
                 {
-                    Object.FieldChange += handler;
+                    return;
                 }
-                else
+                FieldChangeEventHandlerWrapper handler;
+                FieldChangeEventHandlerWrapper handler2 = _fieldChange;
+                FieldChangeEventHandlerWrapper combined;
+                do
                 {
-                    Object.FieldChange -= handler;
+                    handler = handler2;
+                    combined = (FieldChangeEventHandlerWrapper)Delegate.Combine(handler, value);
+                    handler2 = Interlocked.CompareExchange(ref _fieldChange, combined, handler);
+                } while (handler != handler2);
+                if (handler == null)
+                {
+                    Object.FieldChange += FieldChangeHandler;
+                }
+            }
+            remove
+            {
+                if (value == null)
+                {
+                    return;
+                }
+                FieldChangeEventHandlerWrapper handler;
+                FieldChangeEventHandlerWrapper handler2 = _fieldChange;
+                FieldChangeEventHandlerWrapper removed;
+                do
+                {
+                    handler = handler2;
+                    removed = (FieldChangeEventHandlerWrapper)Delegate.Remove(handler, value);
+                    handler2 = Interlocked.CompareExchange(ref _fieldChange, removed, handler);
+                } while (handler != handler2);
+                if (removed == null)
+                {
+                    Object.FieldChange -= FieldChangeHandler;
                 }
             }
         }
+
+        private FieldChangeEventHandlerWrapper _fieldChange;
+
+        private void FieldChangeHandler(object source, OtherNamespace.FieldChangeEventArgs e) => _fieldChange?.Invoke(source is OtherNamespace.Other o ? (OtherWrapper)o : source, (FieldChangeEventArgsWrapper)e);
 
         /// <summary>
         /// The wrapper constructor.
@@ -75,6 +102,8 @@ namespace OtherNamespace
         /// </summary>
         /// <returns>A hash code for the current object.</returns>
         public override int GetHashCode() => Object.GetHashCode();
+
+        public void InvokeFieldChange() => Object.InvokeFieldChange();
 
         public void Open(params int[] indices) => Object.Open(indices);
     }

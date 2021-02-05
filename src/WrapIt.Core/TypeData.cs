@@ -34,6 +34,8 @@ namespace WrapIt
 
         public TypeName InterfaceName { get; }
 
+        public string ActualName => ClassName != InterfaceName ? Type.FullName : ClassName.ToString();
+
         public TypeBuildStatus BuildStatus { get; set; }
 
         public HashSet<TypeData> DependentTypes { get; }
