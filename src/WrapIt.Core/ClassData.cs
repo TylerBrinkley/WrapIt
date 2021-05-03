@@ -99,11 +99,10 @@ namespace WrapIt
                 {
                     interfaceUsingDirectives.Add("System");
                 }
-                if (@event.Type.BuildStatus != TypeBuildStatus.NotBuilding)
-                {
-                    // For Interlocked
-                    classUsingDirectives.Add("System.Threading");
-                }
+                // For Delegate
+                classUsingDirectives.Add("System");
+                // For Interlocked
+                classUsingDirectives.Add("System.Threading");
             }
 
             foreach (var method in Methods)
