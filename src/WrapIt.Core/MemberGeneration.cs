@@ -6,6 +6,7 @@
         OnlyInInterface = 1,
         Full = 2,
         WrapImplementationInCompilerFlag = 3,
-        FullWithNonNullCaching = 4
+        FullWithNonNullCaching = 4,
+        WrapEventHandlerInCompilerFlag = 5
     }
 }

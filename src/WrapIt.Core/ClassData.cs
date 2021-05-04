@@ -385,6 +385,10 @@ namespace WrapIt
 
                 foreach (var property in Properties)
                 {
+                    if (property.Generation == MemberGeneration.WrapEventHandlerInCompilerFlag)
+                    {
+                        throw new NotSupportedException("WrapEventHandlerInCompilerFlag is not supported for properties.");
+                    }
                     var wrapInCompilerFlag = property.Generation == MemberGeneration.WrapImplementationInCompilerFlag;
                     if (wrapInCompilerFlag || property.Generation == MemberGeneration.Full || property.Generation == MemberGeneration.FullWithNonNullCaching)
                     {
@@ -497,7 +501,7 @@ namespace WrapIt
                         throw new NotSupportedException("Caching is not supported for events.");
                     }
                     var wrapInCompilerFlag = @event.Generation == MemberGeneration.WrapImplementationInCompilerFlag;
-                    if (wrapInCompilerFlag || @event.Generation == MemberGeneration.Full)
+                    if (wrapInCompilerFlag || @event.Generation == MemberGeneration.Full || @event.Generation == MemberGeneration.WrapEventHandlerInCompilerFlag)
                     {
                         if (wrapInCompilerFlag)
                         {
@@ -571,6 +575,10 @@ namespace WrapIt
                             await writer.WriteLineAsync().ConfigureAwait(false);
                             await writer.WriteLineAsync($@"        private {@event.Type.InterfaceName} {fieldName};").ConfigureAwait(false);
                             await writer.WriteLineAsync().ConfigureAwait(false);
+                            if (@event.Generation == MemberGeneration.WrapEventHandlerInCompilerFlag)
+                            {
+                                await writer.WriteLineAsync($"#if {builder.DefaultMemberGenerationCompilerFlag}").ConfigureAwait(false);
+                            }
                             await writer.WriteAsync($@"        private void {handlerMethod}({string.Join(", ", @event.Type.Parameters.Select(p => p.GetAsActualParameter()))})").ConfigureAwait(false);
                             var body = $"{fieldName}?.Invoke({string.Join(", ", @event.Type.Parameters.Select((p, i) => i == 0 && p.Type.Type == typeof(object) && !IsStatic ? $"{p.Name} is {typeFullName} {(builder.MinCSharpVersion >= 7M ? $"o ? ({ClassName})o" : $"? ({ClassName})({typeFullName}){p.Name}")} : {p.Name}" : p.Type.GetCodeToConvertFromActualTypeToInterface(p.Name)))});";
                             if (builder.MinCSharpVersion >= 7M)
@@ -583,6 +591,10 @@ namespace WrapIt
                                 await writer.WriteLineAsync($@"        {{").ConfigureAwait(false);
                                 await writer.WriteLineAsync($@"            {body}").ConfigureAwait(false);
                                 await writer.WriteLineAsync($@"        }}").ConfigureAwait(false);
+                            }
+                            if (@event.Generation == MemberGeneration.WrapEventHandlerInCompilerFlag)
+                            {
+                                await writer.WriteLineAsync("#endif").ConfigureAwait(false);
                             }
                         }
                         if (wrapInCompilerFlag)
@@ -647,6 +659,10 @@ namespace WrapIt
                     if (method.Generation == MemberGeneration.FullWithNonNullCaching)
                     {
                         throw new NotSupportedException("Caching is not supported for methods.");
+                    }
+                    if (method.Generation == MemberGeneration.WrapEventHandlerInCompilerFlag)
+                    {
+                        throw new NotSupportedException("WrapEventHandlerInCompilerFlag is not supported for methods.");
                     }
                     var wrapInCompilerFlag = method.Generation == MemberGeneration.WrapImplementationInCompilerFlag;
                     if (wrapInCompilerFlag || method.Generation == MemberGeneration.Full)
