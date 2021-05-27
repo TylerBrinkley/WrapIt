@@ -147,6 +147,13 @@ namespace WrapIt
                         {
                             isEquatable = true;
                         }
+                        if (!isIEnumerable && method.Name == "GetEnumerator" && returnType == typeof(IEnumerator) && Type != typeof(IEnumerable))
+                        {
+                            isIEnumerable = true;
+                            var interfaceTypeData = (InterfaceData)builder.GetTypeData(typeof(IEnumerable), typeDatas);
+                            interfaceTypeData.Initialize(builder, documentationProvider, typeDatas, bindingFlags);
+                            Interfaces.Add(interfaceTypeData);
+                        }
                         var parameters = new List<ParameterData>();
                         if (parameterInfos?.Length > 0)
                         {
@@ -187,9 +194,21 @@ namespace WrapIt
                 var specificAddMethods = addMethods.Where(m => m.Parameters.Count == 1 && (m.ReturnType.Type == typeof(void) || m.ReturnType.Type == typeof(bool) || m.ReturnType.Type == typeof(int))).ToList();
                 var addMethod = specificAddMethods.Count == 1 ? specificAddMethods[0] : null;
                 TypeData? genericArg = null;
-                if (addMethod != null)
+                var indexers = Properties.Where(p => p.Name == "Item").ToList();
+                var removeMethods = Methods.Where(m => m.Name == "Remove").ToList();
+                var specificRemoveMethods = removeMethods.Where(m => m.Parameters.Count == 1 && (m.ReturnType.Type == typeof(void) || m.ReturnType.Type == typeof(bool) || m.ReturnType.Type == typeof(int))).ToList();
+                var removeMethod = specificRemoveMethods.Count == 1 ? specificRemoveMethods[0] : null;
+                if (indexers.Count > 0 && indexers.All(i => i.Type.Equals(indexers[0].Type)))
+                {
+                    genericArg = indexers[0].Type;
+                }
+                else if (addMethod != null)
                 {
                     genericArg = addMethod.Parameters[0].Type;
+                }
+                else if (removeMethod != null)
+                {
+                    genericArg = removeMethod.Parameters[0].Type;
                 }
                 else if (addMethods.Count > 0)
                 {
@@ -199,30 +218,17 @@ namespace WrapIt
                         genericArg = returnType;
                     }
                 }
-                var indexers = Properties.Where(p => p.Name == "Item").ToList();
-                if (genericArg != null || indexers.Count > 0)
+                if (genericArg != null)
                 {
-                    var indexerType = indexers[0].Type;
-                    if (genericArg == null || !indexers.All(i => i.Type.Equals(genericArg)))
+                    var interfaceTypeData = (InterfaceData)builder.GetTypeData(typeof(IEnumerable<>).MakeGenericType(genericArg.Type), typeDatas);
+                    interfaceTypeData.Initialize(builder, documentationProvider, typeDatas, bindingFlags);
+                    Interfaces.Add(interfaceTypeData);
+                    for (var i = 0; i < Methods.Count; ++i)
                     {
-                        genericArg = indexerType;
-                        if (!indexers.All(i => i.Type.Equals(genericArg)) || (addMethods.Count > 0 && !addMethods.Any(m => m.Parameters.Count == 1 && m.Parameters[0].Type.Equals(genericArg))))
+                        if (Methods[i].Name == "GetEnumerator")
                         {
-                            genericArg = null;
-                        }
-                    }
-                    if (genericArg != null)
-                    {
-                        var interfaceTypeData = (InterfaceData)builder.GetTypeData(typeof(IEnumerable<>).MakeGenericType(genericArg.Type), typeDatas);
-                        interfaceTypeData.Initialize(builder, documentationProvider, typeDatas, bindingFlags);
-                        Interfaces.Add(interfaceTypeData);
-                        for (var i = 0; i < Methods.Count; ++i)
-                        {
-                            if (Methods[i].Name == "GetEnumerator")
-                            {
-                                Methods.RemoveAt(i);
-                                break;
-                            }
+                            Methods.RemoveAt(i);
+                            break;
                         }
                     }
                 }

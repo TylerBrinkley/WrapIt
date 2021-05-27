@@ -8,6 +8,7 @@ namespace Company
     {
         IList<IBase> Array { get; set; }
         decimal Bird { set; }
+        IOther CachedProperty { get; set; }
         IOther Cat { get; set; }
         ICollection Collection { get; set; }
         IOther this[int index] { get; }

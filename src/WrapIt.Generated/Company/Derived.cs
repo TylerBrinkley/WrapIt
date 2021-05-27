@@ -12,6 +12,8 @@ namespace Company
 
         public decimal Bird { set => _bird = value; }
 
+        public Other CachedProperty { get; set; }
+
         public Other Cat { get; set; }
 
         public Collection Collection { get; set; }

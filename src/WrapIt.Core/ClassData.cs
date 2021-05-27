@@ -74,12 +74,6 @@ namespace WrapIt
                 classUsingDirectives.UnionWith(derivedType.ClassName.GetNamespaces());
             }
 
-            if (Properties.Any(p => p.Generation == MemberGeneration.FullWithNonNullCaching))
-            {
-                // For Interlocked
-                classUsingDirectives.Add("System.Threading");
-            }
-
             if (ObsoleteMessage != null)
             {
                 interfaceUsingDirectives.Add("System");
@@ -99,10 +93,13 @@ namespace WrapIt
                 {
                     interfaceUsingDirectives.Add("System");
                 }
-                // For Delegate
-                classUsingDirectives.Add("System");
-                // For Interlocked
-                classUsingDirectives.Add("System.Threading");
+                if (!IsStatic || @event.Type.ClassName != @event.Type.InterfaceName)
+                {
+                    // For Delegate
+                    classUsingDirectives.Add("System");
+                    // For Interlocked
+                    classUsingDirectives.Add("System.Threading");
+                }
             }
 
             foreach (var method in Methods)
@@ -390,7 +387,7 @@ namespace WrapIt
                         throw new NotSupportedException("WrapEventHandlerInCompilerFlag is not supported for properties.");
                     }
                     var wrapInCompilerFlag = property.Generation == MemberGeneration.WrapImplementationInCompilerFlag;
-                    if (wrapInCompilerFlag || property.Generation == MemberGeneration.Full || property.Generation == MemberGeneration.FullWithNonNullCaching)
+                    if (wrapInCompilerFlag || property.Generation == MemberGeneration.Full || property.Generation == MemberGeneration.FullWithSafeCaching)
                     {
                         if (wrapInCompilerFlag)
                         {
@@ -398,7 +395,7 @@ namespace WrapIt
                         }
                         if (property.Parameters.Count > 0)
                         {
-                            if (property.Generation == MemberGeneration.FullWithNonNullCaching)
+                            if (property.Generation == MemberGeneration.FullWithSafeCaching)
                             {
                                 throw new NotSupportedException("Caching is not supported for indexers.");
                             }
@@ -421,7 +418,7 @@ namespace WrapIt
                         }
                         else
                         {
-                            if (property.Generation == MemberGeneration.FullWithNonNullCaching)
+                            if (property.Generation == MemberGeneration.FullWithSafeCaching)
                             {
                                 if (!property.HasGetter)
                                 {
@@ -439,7 +436,7 @@ namespace WrapIt
                                 {
                                     await writer.WriteLineAsync($"        [Obsolete{(property.ObsoleteMessage.Length > 0 ? $"(\"{property.ObsoleteMessage}\")" : string.Empty)}]");
                                 }
-                                await writer.WriteLineAsync($"        public {property.Type.ClassName} {property.Name} {{ get {{ var {variableName} = {fieldName}; return {variableName} ?? Interlocked.CompareExchange(ref {fieldName}, {variableName} = {property.Type.GetCodeToConvertFromActualType($"{accessorName}.{property.Name}")}, null) ?? {variableName}; }} {(property.HasSetter ? $"set {{ {accessorName}.{property.Name} = {property.Type.GetCodeToConvertToActualType("value")}; {fieldName} = null; }} " : string.Empty)}}}").ConfigureAwait(false);
+                                await writer.WriteLineAsync($"        public {property.Type.ClassName} {property.Name} {{ get {{ var {variableName} = {fieldName}; var {ObjectParamName} = {accessorName}.{property.Name}; return ReferenceEquals({variableName}?.{ObjectName}, {ObjectParamName}) ? {variableName} : {fieldName} = {property.Type.GetCodeToConvertFromActualType(ObjectParamName)}; }} {(property.HasSetter ? $"set => {accessorName}.{property.Name} = {property.Type.GetCodeToConvertToActualType("value")}; " : string.Empty)}}}").ConfigureAwait(false);
                             }
                             else
                             {
@@ -496,7 +493,7 @@ namespace WrapIt
 
                 foreach (var @event in Events)
                 {
-                    if (@event.Generation == MemberGeneration.FullWithNonNullCaching)
+                    if (@event.Generation == MemberGeneration.FullWithSafeCaching)
                     {
                         throw new NotSupportedException("Caching is not supported for events.");
                     }
@@ -656,7 +653,7 @@ namespace WrapIt
 
                 foreach (var method in Methods)
                 {
-                    if (method.Generation == MemberGeneration.FullWithNonNullCaching)
+                    if (method.Generation == MemberGeneration.FullWithSafeCaching)
                     {
                         throw new NotSupportedException("Caching is not supported for methods.");
                     }

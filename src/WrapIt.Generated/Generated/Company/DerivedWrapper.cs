@@ -30,6 +30,12 @@ namespace Company
 
         public decimal Bird { set => Object.Bird = value; }
 
+        private OtherWrapper _cachedProperty;
+
+        public OtherWrapper CachedProperty { get { var cachedProperty = _cachedProperty; var @object = Object.CachedProperty; return ReferenceEquals(cachedProperty?.Object, @object) ? cachedProperty : _cachedProperty = @object; } set => Object.CachedProperty = value; }
+
+        IOther IDerived.CachedProperty { get => CachedProperty; set => CachedProperty = (OtherWrapper)value; }
+
         public OtherWrapper Cat { get => Object.Cat; set => Object.Cat = value; }
 
         IOther IDerived.Cat { get => Cat; set => Cat = (OtherWrapper)value; }

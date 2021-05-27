@@ -20,6 +20,10 @@ namespace WrapIt.Tests
         {
             var builder = new WrapperBuilder();
             builder.RootTypes.Add(typeof(Derived));
+            builder.PropertyResolver += (type, propertyInfo) =>
+                type == typeof(Derived) && propertyInfo.Name == nameof(Derived.CachedProperty)
+                ? MemberGeneration.FullWithSafeCaching
+                : MemberGeneration.Full;
             await builder.BuildAsync(GetWriter);
 
             foreach (var directory in new DirectoryInfo(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)).Parent.Parent.Parent.Parent.EnumerateDirectories("WrapIt.Generated").First().EnumerateDirectories("Generated").First().EnumerateDirectories())
