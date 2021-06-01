@@ -64,6 +64,11 @@ namespace WrapIt
                 classUsingDirectives.UnionWith(dependentType.ClassName.GetNamespaces());
             }
 
+            foreach (var classDependentType in ClassDependentTypes)
+            {
+                classUsingDirectives.UnionWith(classDependentType.ClassName.GetNamespaces());
+            }
+
             foreach (var @interface in Interfaces)
             {
                 interfaceUsingDirectives.UnionWith(@interface.InterfaceName.GetNamespaces());

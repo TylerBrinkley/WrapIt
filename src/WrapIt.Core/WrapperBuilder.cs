@@ -137,7 +137,7 @@ namespace WrapIt
                                 {
                                     if (type.IsAssignableFrom(t) && t != type)
                                     {
-                                        typeData.DependentTypes.Add(GetTypeData(t, typeDatas));
+                                        typeData.ClassDependentTypes.Add(GetTypeData(t, typeDatas));
                                     }
                                 }
                             }

@@ -40,6 +40,8 @@ namespace WrapIt
 
         public HashSet<TypeData> DependentTypes { get; }
 
+        public HashSet<TypeData> ClassDependentTypes { get; }
+
 #pragma warning disable CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
         public TypeData(Type type)
 #pragma warning restore CS8618 // Non-nullable field is uninitialized. Consider declaring as nullable.
@@ -59,6 +61,7 @@ namespace WrapIt
             InterfaceName = interfaceName;
             BuildStatus = buildStatus;
             DependentTypes = new HashSet<TypeData>();
+            ClassDependentTypes = new HashSet<TypeData>();
         }
 
         public static bool operator ==(TypeData? left, TypeData? right) => left is null ? right is null : left.Equals(right);
