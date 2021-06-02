@@ -19,13 +19,15 @@ namespace WrapIt
 
         public MemberGeneration Generation { get; }
 
+        public bool IsStatic { get; }
+
         public TypeData? DeclaringInterfaceType { get; set; }
 
         public IEnumerable<XElement> Documentation { get; set; } = Enumerable.Empty<XElement>();
 
         public string? ObsoleteMessage { get; set; }
 
-        public PropertyData(TypeData type, string name, bool hasGetter, bool hasSetter, List<ParameterData> parameters, MemberGeneration generation)
+        public PropertyData(TypeData type, string name, bool hasGetter, bool hasSetter, List<ParameterData> parameters, MemberGeneration generation, bool isStatic)
         {
             Type = type;
             Name = name;
@@ -33,6 +35,7 @@ namespace WrapIt
             HasSetter = hasSetter;
             Parameters = parameters;
             Generation = generation;
+            IsStatic = isStatic;
         }
 
         public override int GetHashCode() => Name.GetHashCode() ^ Type.GetHashCode();

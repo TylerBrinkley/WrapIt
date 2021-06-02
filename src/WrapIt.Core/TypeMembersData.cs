@@ -105,7 +105,9 @@ namespace WrapIt
                             }
                         }
 
-                        var propertyData = new PropertyData(propertyTypeData, property.Name, property.GetGetMethod() != null, property.GetSetMethod() != null, parameters, generation);
+                        var getMethod = property.GetGetMethod();
+                        var setMethod = property.GetSetMethod();
+                        var propertyData = new PropertyData(propertyTypeData, property.Name, getMethod != null, setMethod != null, parameters, generation, getMethod?.IsStatic ?? setMethod!.IsStatic);
                         foreach (var @interface in Interfaces)
                         {
                             if (@interface.Properties.Any(p => p.Equals(propertyData)))
@@ -124,6 +126,29 @@ namespace WrapIt
                         }
                         Properties.Add(propertyData);
                     }
+                }
+            }
+
+            var fieldInfos = Type.GetFields(bindingFlags);
+            foreach (var field in fieldInfos)
+            {
+                var generation = builder.FieldResolver?.Invoke(Type, field) ?? MemberGeneration.Full;
+                if (generation != MemberGeneration.None)
+                {
+                    var fieldType = field.FieldType;
+                    var fieldTypeData = builder.GetTypeData(fieldType, typeDatas);
+                    DependentTypes.UnionWith(fieldTypeData.GetPublicTypes());
+                    var propertyData = new PropertyData(fieldTypeData, field.Name, true, !field.IsInitOnly && !field.IsLiteral, new List<ParameterData>(), generation, field.IsStatic);
+                    if (documentationProvider != null)
+                    {
+                        propertyData.Documentation = documentationProvider.GetDocumentation(field);
+                    }
+                    obsoleteAttribute = field.GetCustomAttribute<ObsoleteAttribute>();
+                    if (obsoleteAttribute != null)
+                    {
+                        propertyData.ObsoleteMessage = obsoleteAttribute.Message?.Replace("\"", "\\\"") ?? string.Empty;
+                    }
+                    Properties.Add(propertyData);
                 }
             }
 
@@ -166,7 +191,7 @@ namespace WrapIt
                             }
                         }
 
-                        var methodData = new MethodData(method.Name, returnTypeData, parameters, overrideObject, generation);
+                        var methodData = new MethodData(method.Name, returnTypeData, parameters, overrideObject, generation, method.IsStatic);
                         foreach (var @interface in Interfaces)
                         {
                             if (@interface.Methods.Any(p => p.Equals(methodData)))
@@ -266,7 +291,7 @@ namespace WrapIt
                             }
                         }
 
-                        var eventData = new EventData(eventHandlerTypeData, @event.Name, generation);
+                        var eventData = new EventData(eventHandlerTypeData, @event.Name, generation, @event.GetAddMethod().IsStatic);
                         foreach (var @interface in Interfaces)
                         {
                             if (@interface.Events.Any(e => e.Equals(eventData)))

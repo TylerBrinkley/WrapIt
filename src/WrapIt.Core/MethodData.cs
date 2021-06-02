@@ -17,19 +17,22 @@ namespace WrapIt
 
         public MemberGeneration Generation { get; }
 
+        public bool IsStatic { get; }
+
         public TypeData? DeclaringInterfaceType { get; set; }
 
         public IEnumerable<XElement> Documentation { get; set; } = Enumerable.Empty<XElement>();
 
         public string? ObsoleteMessage { get; set; }
 
-        public MethodData(string name, TypeData returnType, List<ParameterData> parameters, bool overrideObject, MemberGeneration generation)
+        public MethodData(string name, TypeData returnType, List<ParameterData> parameters, bool overrideObject, MemberGeneration generation, bool isStatic)
         {
             Name = name;
             ReturnType = returnType;
             Parameters = parameters;
             OverrideObject = overrideObject;
             Generation = generation;
+            IsStatic = isStatic;
         }
 
         public override int GetHashCode() => Name.GetHashCode() ^ ReturnType.GetHashCode();

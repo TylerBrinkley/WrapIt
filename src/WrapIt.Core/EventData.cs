@@ -13,17 +13,20 @@ namespace WrapIt
 
         public MemberGeneration Generation { get; }
 
+        public bool IsStatic { get; }
+
         public TypeData? DeclaringInterfaceType { get; set; }
 
         public IEnumerable<XElement> Documentation { get; set; } = Enumerable.Empty<XElement>();
 
         public string? ObsoleteMessage { get; set; }
 
-        public EventData(DelegateData type, string name, MemberGeneration generation)
+        public EventData(DelegateData type, string name, MemberGeneration generation, bool isStatic)
         {
             Type = type;
             Name = name;
             Generation = generation;
+            IsStatic = isStatic;
         }
 
         public override int GetHashCode() => Name.GetHashCode() ^ Type.GetHashCode();

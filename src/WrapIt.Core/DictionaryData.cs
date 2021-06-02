@@ -33,6 +33,14 @@ namespace WrapIt
                     await dependentType.BuildAsync(builder, typeDatas, writerProvider, documentationProvider, cancellationToken).ConfigureAwait(false);
                 }
             }
+
+            foreach (var dependentType in ClassDependentTypes)
+            {
+                if (dependentType.BuildStatus == TypeBuildStatus.NotYetBuilt)
+                {
+                    await dependentType.BuildAsync(builder, typeDatas, writerProvider, documentationProvider, cancellationToken).ConfigureAwait(false);
+                }
+            }
         }
 
         public override string GetCodeToConvertToActualType(string parameterName) => ClassName != InterfaceName ? $"{parameterName}?.ToCollection()" : base.GetCodeToConvertToActualType(parameterName);

@@ -18,22 +18,30 @@ namespace WrapIt
 
         public List<ClassData> DirectDerivedTypes { get; } = new List<ClassData>();
 
-        public bool IsStatic { get; }
+        public TypeGeneration TypeGeneration { get; }
 
-        public ClassData(Type type, TypeName className, TypeName interfaceName, TypeBuildStatus buildStatus, ClassData? baseType, bool isStatic)
+        public ClassData(Type type, TypeName className, TypeName interfaceName, TypeBuildStatus buildStatus, ClassData? baseType, TypeGeneration typeGeneration)
             : base(type, className, interfaceName, buildStatus)
         {
             BaseType = baseType;
-            IsStatic = isStatic;
+            TypeGeneration = typeGeneration;
         }
 
-        protected override Type[] GetInterfaces() => IsStatic ? Array.Empty<Type>() : base.GetInterfaces();
+        protected override Type[] GetInterfaces() => TypeGeneration.HasFlag(TypeGeneration.Instance) ? base.GetInterfaces() : Array.Empty<Type>();
 
         public override async Task BuildAsync(WrapperBuilder builder, HashSet<TypeData> typeDatas, Func<Type, string, CancellationToken, Task<TextWriter>> writerProvider, DocumentationProvider? documentationProvider, CancellationToken cancellationToken = default)
         {
             BuildStatus = TypeBuildStatus.Building;
 
-            var bindingFlags = IsStatic ? BindingFlags.Public | BindingFlags.Static : BindingFlags.Public | BindingFlags.Instance;
+            var bindingFlags = BindingFlags.Public;
+            if (TypeGeneration.HasFlag(TypeGeneration.Instance))
+            {
+                bindingFlags |= BindingFlags.Instance;
+            }
+            if (TypeGeneration.HasFlag(TypeGeneration.Static))
+            {
+                bindingFlags |= BindingFlags.Static;
+            }
             if (BaseType != null)
             {
                 bindingFlags |= BindingFlags.DeclaredOnly;
@@ -52,7 +60,7 @@ namespace WrapIt
                 interfaceUsingDirectives.UnionWith(BaseType.InterfaceName.GetNamespaces());
                 classUsingDirectives.UnionWith(BaseType.ClassName.GetNamespaces());
             }
-            else if (!IsStatic)
+            else if (TypeGeneration.HasFlag(TypeGeneration.Instance))
             {
                 // For ArgumentNullException
                 classUsingDirectives.Add("System");
@@ -98,7 +106,7 @@ namespace WrapIt
                 {
                     interfaceUsingDirectives.Add("System");
                 }
-                if (!IsStatic || @event.Type.ClassName != @event.Type.InterfaceName)
+                if (!@event.IsStatic || @event.Type.ClassName != @event.Type.InterfaceName)
                 {
                     // For Delegate
                     classUsingDirectives.Add("System");
@@ -124,6 +132,14 @@ namespace WrapIt
             BuildStatus = TypeBuildStatus.Built;
 
             foreach (var dependentType in DependentTypes)
+            {
+                if (dependentType.BuildStatus == TypeBuildStatus.NotYetBuilt)
+                {
+                    await dependentType.BuildAsync(builder, typeDatas, writerProvider, documentationProvider, cancellationToken).ConfigureAwait(false);
+                }
+            }
+
+            foreach (var dependentType in ClassDependentTypes)
             {
                 if (dependentType.BuildStatus == TypeBuildStatus.NotYetBuilt)
                 {
@@ -289,8 +305,7 @@ namespace WrapIt
                 await writer.WriteLineAsync("    {").ConfigureAwait(false);
 
                 var typeFullName = Type.FullName;
-                var accessorName = IsStatic ? typeFullName : ObjectName;
-                if (!IsStatic)
+                if (TypeGeneration.HasFlag(TypeGeneration.Instance))
                 {
                     if (builder.IncludeDocumentation)
                     {
@@ -394,6 +409,7 @@ namespace WrapIt
                     var wrapInCompilerFlag = property.Generation == MemberGeneration.WrapImplementationInCompilerFlag;
                     if (wrapInCompilerFlag || property.Generation == MemberGeneration.Full || property.Generation == MemberGeneration.FullWithSafeCaching)
                     {
+                        var accessorName = property.IsStatic ? typeFullName : ObjectName;
                         if (wrapInCompilerFlag)
                         {
                             await writer.WriteLineAsync($"#if {builder.DefaultMemberGenerationCompilerFlag}").ConfigureAwait(false);
@@ -505,6 +521,7 @@ namespace WrapIt
                     var wrapInCompilerFlag = @event.Generation == MemberGeneration.WrapImplementationInCompilerFlag;
                     if (wrapInCompilerFlag || @event.Generation == MemberGeneration.Full || @event.Generation == MemberGeneration.WrapEventHandlerInCompilerFlag)
                     {
+                        var accessorName = @event.IsStatic ? typeFullName : ObjectName;
                         if (wrapInCompilerFlag)
                         {
                             await writer.WriteLineAsync($"#if {builder.DefaultMemberGenerationCompilerFlag}").ConfigureAwait(false);
@@ -519,7 +536,7 @@ namespace WrapIt
                         }
                         await writer.WriteLineAsync($"        public event {@event.Type.InterfaceName} {@event.Name}").ConfigureAwait(false);
                         await writer.WriteLineAsync("        {").ConfigureAwait(false);
-                        if (IsStatic && @event.Type.ClassName == @event.Type.InterfaceName)
+                        if (@event.IsStatic && @event.Type.ClassName == @event.Type.InterfaceName)
                         {
                             await writer.WriteLineAsync($"            add {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {accessorName}.{@event.Name} += value;{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")}").ConfigureAwait(false);
                             await writer.WriteLineAsync($"            remove {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {accessorName}.{@event.Name} -= value;{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")}").ConfigureAwait(false);
@@ -582,7 +599,7 @@ namespace WrapIt
                                 await writer.WriteLineAsync($"#if {builder.DefaultMemberGenerationCompilerFlag}").ConfigureAwait(false);
                             }
                             await writer.WriteAsync($@"        private void {handlerMethod}({string.Join(", ", @event.Type.Parameters.Select(p => p.GetAsActualParameter()))})").ConfigureAwait(false);
-                            var body = $"{fieldName}?.Invoke({string.Join(", ", @event.Type.Parameters.Select((p, i) => i == 0 && p.Type.Type == typeof(object) && !IsStatic ? $"{p.Name} is {typeFullName} {(builder.MinCSharpVersion >= 7M ? $"o ? ({ClassName})o" : $"? ({ClassName})({typeFullName}){p.Name}")} : {p.Name}" : p.Type.GetCodeToConvertFromActualTypeToInterface(p.Name)))});";
+                            var body = $"{fieldName}?.Invoke({string.Join(", ", @event.Type.Parameters.Select((p, i) => i == 0 && p.Type.Type == typeof(object) && !@event.IsStatic ? $"{p.Name} is {typeFullName} {(builder.MinCSharpVersion >= 7M ? $"o ? ({ClassName})o" : $"? ({ClassName})({typeFullName}){p.Name}")} : {p.Name}" : p.Type.GetCodeToConvertFromActualTypeToInterface(p.Name)))});";
                             if (builder.MinCSharpVersion >= 7M)
                             {
                                 await writer.WriteLineAsync($" => {body}").ConfigureAwait(false);
@@ -609,7 +626,7 @@ namespace WrapIt
 
                 // TODO: Add explicit interface implementation support for events
 
-                if (IsStatic)
+                if (!TypeGeneration.HasFlag(TypeGeneration.Instance))
                 {
                     if (builder.IncludeDocumentation)
                     {
@@ -713,6 +730,7 @@ namespace WrapIt
                         }
                         else
                         {
+                            var accessorName = method.IsStatic ? typeFullName : ObjectName;
                             if (builder.IncludeDocumentation && method.OverrideObject && !method.Documentation.Any())
                             {
                                 await writer.WriteLineAsync(@"        /// <summary>").ConfigureAwait(false);

@@ -37,6 +37,8 @@ namespace WrapIt
         /// </summary>
         public Func<string, string, string>? EnumFullNameFormat { get; set; }
 
+        public Func<Type, FieldInfo, MemberGeneration>? FieldResolver { get; set; }
+
         public Func<Type, PropertyInfo, MemberGeneration>? PropertyResolver { get; set; }
 
         public Func<Type, MethodInfo, MemberGeneration>? MethodResolver { get; set; }
@@ -83,7 +85,7 @@ namespace WrapIt
                 var typeName = type.Name;
                 var isEnum = type.IsEnum;
                 TypeGeneration typeGeneration;
-                if ((!type.IsValueType || (isEnum && EnumFullNameFormat != null)) && _assembliesWithTypesToWrap.Contains(type.Assembly) && (typeGeneration = TypeResolver?.Invoke(type) ?? TypeGeneration.Instance) != TypeGeneration.None)
+                if ((!type.IsValueType || (isEnum && EnumFullNameFormat != null)) && _assembliesWithTypesToWrap.Contains(type.Assembly) && (typeGeneration = TypeResolver?.Invoke(type) ?? TypeGeneration.StaticAndInstance) != TypeGeneration.None)
                 {
                     var typeNamespace = type.Namespace;
                     var baseType = type.BaseType;
@@ -123,7 +125,7 @@ namespace WrapIt
                         var interfaceFullName = InterfaceFullNameFormat?.Invoke(typeNamespace, typeName) ?? $"{typeNamespace}.I{typeName}";
                         var className = GetTypeName(classFullName);
                         var interfaceName = GetTypeName(interfaceFullName);
-                        typeData = new ClassData(type, className, interfaceName, TypeBuildStatus.NotYetBuilt, baseTypeData, typeGeneration == TypeGeneration.Static);
+                        typeData = new ClassData(type, className, interfaceName, TypeBuildStatus.NotYetBuilt, baseTypeData, typeGeneration);
                         typeDatas.Add(typeData);
                         if (baseTypeData != null)
                         {
