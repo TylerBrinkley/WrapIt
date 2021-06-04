@@ -32,9 +32,7 @@ namespace Company
         /// </summary>
         public Company.Base Object { get; private set; }
 
-        /// <summary>
-        /// The Dog property.
-        /// </summary>
+        /// <inheritdoc/>
         public string Dog { get => Object.Dog; set => Object.Dog = value; }
 
         public ListWrapper<OtherNamespace.Other, OtherWrapper, IOther> InterfaceList { get => ListWrapper<OtherNamespace.Other, OtherWrapper, IOther>.Create(Object.InterfaceList); set => Object.InterfaceList = value?.ToCollection(); }
@@ -56,17 +54,10 @@ namespace Company
 
         void IBase.DoStuff(IOther other) => DoStuff((OtherWrapper)other);
 
-        /// <summary>
-        /// Determines whether the specified object is equal to the current object.
-        /// </summary>
-        /// <param name="obj">The object to compare with the current object.</param>
-        /// <returns>true if the specified object is equal to the current object; otherwise, false.</returns>
+        /// <inheritdoc/>
         public override bool Equals(object obj) => Object.Equals(obj is BaseWrapper o ? o.Object : obj);
 
-        /// <summary>
-        /// Serves as the default hash function.
-        /// </summary>
-        /// <returns>A hash code for the current object.</returns>
+        /// <inheritdoc/>
         public override int GetHashCode() => Object.GetHashCode();
 
         public void ParamArrayTest(ArrayWrapper<OtherNamespace.Other, OtherWrapper, IOther> others) => Object.ParamArrayTest(others?.ToCollection());

@@ -56,7 +56,7 @@ namespace WrapIt
         /// </summary>
         public string DefaultMemberGenerationCompilerFlag { get; set; } = "WRAP_IT_DEFAULT_MEMBER_GENERATION";
 
-        public bool IncludeDocumentation { get; set; } = true;
+        public DocumentationGeneration DocumentationGeneration { get; set; } = DocumentationGeneration.GenerateWithInheritDoc;
 
         public async Task BuildAsync(Func<Type, string, CancellationToken, Task<TextWriter>> writerProvider, CancellationToken cancellationToken = default)
         {
@@ -70,7 +70,7 @@ namespace WrapIt
                 AssembliesWithTypesToWrap.Add(rootType.Assembly);
             }
             var typeDatas = new HashSet<TypeData>(TypeData.DefaultTypes);
-            var documentationProvider = IncludeDocumentation ? new DocumentationProvider() : null;
+            var documentationProvider = DocumentationGeneration != DocumentationGeneration.None ? new DocumentationProvider() : null;
             foreach (var rootType in _rootTypes)
             {
                 var typeData = GetTypeData(rootType, typeDatas);

@@ -307,7 +307,7 @@ namespace WrapIt
                 var typeFullName = Type.FullName;
                 if (TypeGeneration.HasFlag(TypeGeneration.Instance))
                 {
-                    if (builder.IncludeDocumentation)
+                    if (builder.DocumentationGeneration != DocumentationGeneration.None)
                     {
                         await writer.WriteLineAsync($@"        /// <summary>").ConfigureAwait(false);
                         await writer.WriteLineAsync($@"        /// The conversion operator for wrapping the <see cref=""{typeFullName}""/> object.").ConfigureAwait(false);
@@ -373,7 +373,7 @@ namespace WrapIt
                     }
                     await writer.WriteLineAsync().ConfigureAwait(false);
 
-                    if (builder.IncludeDocumentation)
+                    if (builder.DocumentationGeneration != DocumentationGeneration.None)
                     {
                         await writer.WriteLineAsync($@"        /// <summary>").ConfigureAwait(false);
                         await writer.WriteLineAsync($@"        /// The conversion operator for unwrapping the <see cref=""{typeFullName}""/> object.").ConfigureAwait(false);
@@ -383,7 +383,7 @@ namespace WrapIt
                     await writer.WriteLineAsync($"        public static implicit operator {typeFullName}({ClassName} {ObjectParamName}) => {ObjectParamName}?.{ObjectName};").ConfigureAwait(false);
                     await writer.WriteLineAsync().ConfigureAwait(false);
 
-                    if (builder.IncludeDocumentation)
+                    if (builder.DocumentationGeneration != DocumentationGeneration.None)
                     {
                         await writer.WriteLineAsync("        /// <summary>").ConfigureAwait(false);
                         await writer.WriteLineAsync("        /// The wrapped object.").ConfigureAwait(false);
@@ -420,9 +420,17 @@ namespace WrapIt
                             {
                                 throw new NotSupportedException("Caching is not supported for indexers.");
                             }
+                            var hasExplicitInterfaceImplementation = property.Type.InterfaceName != property.Type.ClassName || property.Parameters.Any(p => p.Type.ClassName != p.Type.InterfaceName);
                             if (property.Documentation.Any())
                             {
-                                await writer.WriteLineAsync(string.Join(writer.NewLine, property.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                                if (builder.DocumentationGeneration == DocumentationGeneration.GenerateWithInheritDoc && !hasExplicitInterfaceImplementation)
+                                {
+                                    await writer.WriteLineAsync("        /// <inheritdoc/>").ConfigureAwait(false);
+                                }
+                                else
+                                {
+                                    await writer.WriteLineAsync(string.Join(writer.NewLine, property.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                                }
                             }
                             if (property.ObsoleteMessage != null)
                             {
@@ -430,7 +438,7 @@ namespace WrapIt
                             }
                             var basicArgumentList = string.Join(", ", property.Parameters.Select(p => p.GetAsArgument()));
                             await writer.WriteLineAsync($"        public {property.Type.ClassName} this[{string.Join(", ", property.Parameters.Select(p => p.GetAsClassParameter()))}] {(property.HasGetter && !property.HasSetter ? $"=> {property.Type.GetCodeToConvertFromActualType($"{accessorName}[{basicArgumentList}]")};" : $"{{ {(property.HasGetter ? $"get {(builder.MinCSharpVersion >= 7M ? "=>" : "{ return")} {property.Type.GetCodeToConvertFromActualType($"{accessorName}[{basicArgumentList}]")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}{(property.HasSetter ? $"set {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {accessorName}[{basicArgumentList}] = {property.Type.GetCodeToConvertToActualType("value")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}}}")}").ConfigureAwait(false);
-                            if (property.Type.InterfaceName != property.Type.ClassName || property.Parameters.Any(p => p.Type.ClassName != p.Type.InterfaceName))
+                            if (hasExplicitInterfaceImplementation)
                             {
                                 var advancedArgumentList = string.Join(", ", property.Parameters.Select(p => p.Type.GetCodeToConvertToClassType(p.Name)));
                                 await writer.WriteLineAsync().ConfigureAwait(false);
@@ -439,6 +447,7 @@ namespace WrapIt
                         }
                         else
                         {
+                            var hasExplicitInterfaceImplementation = property.Type.InterfaceName != property.Type.ClassName;
                             if (property.Generation == MemberGeneration.FullWithSafeCaching)
                             {
                                 if (!property.HasGetter)
@@ -451,7 +460,14 @@ namespace WrapIt
                                 await writer.WriteLineAsync().ConfigureAwait(false);
                                 if (property.Documentation.Any())
                                 {
-                                    await writer.WriteLineAsync(string.Join(writer.NewLine, property.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                                    if (builder.DocumentationGeneration == DocumentationGeneration.GenerateWithInheritDoc && !hasExplicitInterfaceImplementation)
+                                    {
+                                        await writer.WriteLineAsync("        /// <inheritdoc/>").ConfigureAwait(false);
+                                    }
+                                    else
+                                    {
+                                        await writer.WriteLineAsync(string.Join(writer.NewLine, property.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                                    }
                                 }
                                 if (property.ObsoleteMessage != null)
                                 {
@@ -463,7 +479,14 @@ namespace WrapIt
                             {
                                 if (property.Documentation.Any())
                                 {
-                                    await writer.WriteLineAsync(string.Join(writer.NewLine, property.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                                    if (builder.DocumentationGeneration == DocumentationGeneration.GenerateWithInheritDoc && !hasExplicitInterfaceImplementation)
+                                    {
+                                        await writer.WriteLineAsync("        /// <inheritdoc/>").ConfigureAwait(false);
+                                    }
+                                    else
+                                    {
+                                        await writer.WriteLineAsync(string.Join(writer.NewLine, property.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                                    }
                                 }
                                 if (property.ObsoleteMessage != null)
                                 {
@@ -471,7 +494,7 @@ namespace WrapIt
                                 }
                                 await writer.WriteLineAsync($"        public {property.Type.ClassName} {property.Name} {(property.HasGetter && !property.HasSetter ? $"=> {property.Type.GetCodeToConvertFromActualType($"{accessorName}.{property.Name}")};" : $"{{ {(property.HasGetter ? $"get {(builder.MinCSharpVersion >= 7M ? "=>" : "{ return")} {property.Type.GetCodeToConvertFromActualType($"{accessorName}.{property.Name}")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}{(property.HasSetter ? $"set {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {accessorName}.{property.Name} = {property.Type.GetCodeToConvertToActualType("value")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}}}")}").ConfigureAwait(false);
                             }
-                            if (property.Type.InterfaceName != property.Type.ClassName)
+                            if (hasExplicitInterfaceImplementation)
                             {
                                 await writer.WriteLineAsync().ConfigureAwait(false);
                                 if (property.ObsoleteMessage != null)
@@ -528,7 +551,14 @@ namespace WrapIt
                         }
                         if (@event.Documentation.Any())
                         {
-                            await writer.WriteLineAsync(string.Join(writer.NewLine, @event.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                            if (builder.DocumentationGeneration == DocumentationGeneration.GenerateWithInheritDoc)
+                            {
+                                await writer.WriteLineAsync("        /// <inheritdoc/>").ConfigureAwait(false);
+                            }
+                            else
+                            {
+                                await writer.WriteLineAsync(string.Join(writer.NewLine, @event.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                            }
                         }
                         if (@event.ObsoleteMessage != null)
                         {
@@ -628,7 +658,7 @@ namespace WrapIt
 
                 if (!TypeGeneration.HasFlag(TypeGeneration.Instance))
                 {
-                    if (builder.IncludeDocumentation)
+                    if (builder.DocumentationGeneration != DocumentationGeneration.None)
                     {
                         await writer.WriteLineAsync($@"        /// <summary>").ConfigureAwait(false);
                         await writer.WriteLineAsync($@"        /// The wrapper constructor.").ConfigureAwait(false);
@@ -640,7 +670,7 @@ namespace WrapIt
                 }
                 else
                 {
-                    if (builder.IncludeDocumentation)
+                    if (builder.DocumentationGeneration != DocumentationGeneration.None)
                     {
                         await writer.WriteLineAsync($@"        /// <summary>").ConfigureAwait(false);
                         await writer.WriteLineAsync($@"        /// The wrapper constructor.").ConfigureAwait(false);
@@ -691,9 +721,17 @@ namespace WrapIt
                         {
                             await writer.WriteLineAsync($"#if {builder.DefaultMemberGenerationCompilerFlag}").ConfigureAwait(false);
                         }
+                        var hasExplicitInterfaceImplementation = method.ReturnType.ClassName != method.ReturnType.InterfaceName || method.Parameters.Any(p => p.Type.ClassName != p.Type.InterfaceName);
                         if (method.Documentation.Any())
                         {
-                            await writer.WriteLineAsync(string.Join(writer.NewLine, method.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                            if (builder.DocumentationGeneration == DocumentationGeneration.GenerateWithInheritDoc && !hasExplicitInterfaceImplementation)
+                            {
+                                await writer.WriteLineAsync("        /// <inheritdoc/>").ConfigureAwait(false);
+                            }
+                            else
+                            {
+                                await writer.WriteLineAsync(string.Join(writer.NewLine, method.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                            }
                         }
                         if (method.ObsoleteMessage != null)
                         {
@@ -712,13 +750,20 @@ namespace WrapIt
                         }
                         else if (method.Name == "Equals" && method.OverrideObject)
                         {
-                            if (builder.IncludeDocumentation && !method.Documentation.Any())
+                            if (builder.DocumentationGeneration != DocumentationGeneration.None && !method.Documentation.Any())
                             {
-                                await writer.WriteLineAsync(@"        /// <summary>").ConfigureAwait(false);
-                                await writer.WriteLineAsync(@"        /// Determines whether the specified object is equal to the current object.").ConfigureAwait(false);
-                                await writer.WriteLineAsync(@"        /// </summary>").ConfigureAwait(false);
-                                await writer.WriteLineAsync(@"        /// <param name=""obj"">The object to compare with the current object.</param>").ConfigureAwait(false);
-                                await writer.WriteLineAsync(@"        /// <returns>true if the specified object is equal to the current object; otherwise, false.</returns>").ConfigureAwait(false);
+                                if (builder.DocumentationGeneration == DocumentationGeneration.GenerateWithInheritDoc)
+                                {
+                                    await writer.WriteLineAsync("        /// <inheritdoc/>").ConfigureAwait(false);
+                                }
+                                else
+                                {
+                                    await writer.WriteLineAsync(@"        /// <summary>").ConfigureAwait(false);
+                                    await writer.WriteLineAsync(@"        /// Determines whether the specified object is equal to the current object.").ConfigureAwait(false);
+                                    await writer.WriteLineAsync(@"        /// </summary>").ConfigureAwait(false);
+                                    await writer.WriteLineAsync(@"        /// <param name=""obj"">The object to compare with the current object.</param>").ConfigureAwait(false);
+                                    await writer.WriteLineAsync(@"        /// <returns>true if the specified object is equal to the current object; otherwise, false.</returns>").ConfigureAwait(false);
+                                }
                             }
                             var variableName = method.Parameters[0].Name != "o" ? "o" : "obj";
                             await writer.WriteLineAsync($"        public override bool Equals({method.Parameters[0].GetAsClassParameter()}) => {ObjectName}.Equals({method.Parameters[0].Name} is {ClassName} {(builder.MinCSharpVersion >= 7M ? $"{variableName} ? {variableName}" : $"? (({ClassName}){method.Parameters[0].Name})")}.{ObjectName} : {method.Parameters[0].Name});").ConfigureAwait(false);
@@ -731,16 +776,23 @@ namespace WrapIt
                         else
                         {
                             var accessorName = method.IsStatic ? typeFullName : ObjectName;
-                            if (builder.IncludeDocumentation && method.OverrideObject && !method.Documentation.Any())
+                            if (builder.DocumentationGeneration != DocumentationGeneration.None && method.OverrideObject && !method.Documentation.Any())
                             {
-                                await writer.WriteLineAsync(@"        /// <summary>").ConfigureAwait(false);
-                                await writer.WriteLineAsync(@"        /// Serves as the default hash function.").ConfigureAwait(false);
-                                await writer.WriteLineAsync(@"        /// </summary>").ConfigureAwait(false);
-                                await writer.WriteLineAsync(@"        /// <returns>A hash code for the current object.</returns>").ConfigureAwait(false);
+                                if (builder.DocumentationGeneration == DocumentationGeneration.GenerateWithInheritDoc)
+                                {
+                                    await writer.WriteLineAsync("        /// <inheritdoc/>").ConfigureAwait(false);
+                                }
+                                else
+                                {
+                                    await writer.WriteLineAsync(@"        /// <summary>").ConfigureAwait(false);
+                                    await writer.WriteLineAsync(@"        /// Serves as the default hash function.").ConfigureAwait(false);
+                                    await writer.WriteLineAsync(@"        /// </summary>").ConfigureAwait(false);
+                                    await writer.WriteLineAsync(@"        /// <returns>A hash code for the current object.</returns>").ConfigureAwait(false);
+                                }
                             }
                             await writer.WriteLineAsync($"        public {(method.OverrideObject ? "override " : string.Empty)}{method.ReturnType.ClassName} {method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetAsClassParameter()))}) => {method.ReturnType.GetCodeToConvertFromActualType($"{accessorName}.{method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetCodeToConvertToActualType()))})")};").ConfigureAwait(false);
                         }
-                        if (method.ReturnType.ClassName != method.ReturnType.InterfaceName || method.Parameters.Any(p => p.Type.ClassName != p.Type.InterfaceName))
+                        if (hasExplicitInterfaceImplementation)
                         {
                             await writer.WriteLineAsync().ConfigureAwait(false);
                             if (isGenericGetEnumerator)
@@ -777,12 +829,20 @@ namespace WrapIt
                                 {
                                     if (method.ReturnType.Type.IsGenericType)
                                     {
-                                        if (builder.IncludeDocumentation)
+                                        var hasExplicitInterfaceImplementation = method.ReturnType.ClassName != method.ReturnType.InterfaceName;
+                                        if (builder.DocumentationGeneration != DocumentationGeneration.None)
                                         {
-                                            await writer.WriteLineAsync(@"        /// <summary>").ConfigureAwait(false);
-                                            await writer.WriteLineAsync(@"        /// Returns an enumerator that iterates through the collection.").ConfigureAwait(false);
-                                            await writer.WriteLineAsync(@"        /// </summary>").ConfigureAwait(false);
-                                            await writer.WriteLineAsync(@"        /// <returns>An enumerator that can be used to iterate through the collection.</returns>").ConfigureAwait(false);
+                                            if (builder.DocumentationGeneration == DocumentationGeneration.GenerateWithInheritDoc && !hasExplicitInterfaceImplementation)
+                                            {
+                                                await writer.WriteLineAsync("        /// <inheritdoc/>").ConfigureAwait(false);
+                                            }
+                                            else
+                                            {
+                                                await writer.WriteLineAsync(@"        /// <summary>").ConfigureAwait(false);
+                                                await writer.WriteLineAsync(@"        /// Returns an enumerator that iterates through the collection.").ConfigureAwait(false);
+                                                await writer.WriteLineAsync(@"        /// </summary>").ConfigureAwait(false);
+                                                await writer.WriteLineAsync(@"        /// <returns>An enumerator that can be used to iterate through the collection.</returns>").ConfigureAwait(false);
+                                            }
                                         }
                                         await writer.WriteLineAsync($"        public {method.ReturnType.ClassName} GetEnumerator()").ConfigureAwait(false);
                                         await writer.WriteLineAsync("        {").ConfigureAwait(false);
@@ -791,8 +851,11 @@ namespace WrapIt
                                         await writer.WriteLineAsync($"                yield return ({((GenericTypeName)genericIEnumerable.ClassName).GenericTypeArguments[0]})item;").ConfigureAwait(false);
                                         await writer.WriteLineAsync("            }").ConfigureAwait(false);
                                         await writer.WriteLineAsync("        }").ConfigureAwait(false);
-                                        await writer.WriteLineAsync().ConfigureAwait(false);
-                                        await writer.WriteLineAsync($"        {method.ReturnType.InterfaceName} {@interface.InterfaceName}.GetEnumerator() => GetEnumerator();").ConfigureAwait(false);
+                                        if (hasExplicitInterfaceImplementation)
+                                        {
+                                            await writer.WriteLineAsync().ConfigureAwait(false);
+                                            await writer.WriteLineAsync($"        {method.ReturnType.InterfaceName} {@interface.InterfaceName}.GetEnumerator() => GetEnumerator();").ConfigureAwait(false);
+                                        }
                                     }
                                     else
                                     {
