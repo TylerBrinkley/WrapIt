@@ -1,27 +1,26 @@
 ﻿using System;
 using System.Threading;
-using Company;
 
-namespace OtherNamespace
+namespace Wrappers.OtherNamespace
 {
     public partial class OtherWrapper : IOther
     {
         /// <summary>
-        /// The conversion operator for wrapping the <see cref="OtherNamespace.Other"/> object.
+        /// The conversion operator for wrapping the <see cref="Company.OtherNamespace.Other"/> object.
         /// </summary>
         /// <param name="object">The object to wrap.</param>
-        public static implicit operator OtherWrapper(OtherNamespace.Other @object) => @object != null ? new OtherWrapper(@object) : null;
+        public static implicit operator OtherWrapper(Company.OtherNamespace.Other @object) => @object != null ? new OtherWrapper(@object) : null;
 
         /// <summary>
-        /// The conversion operator for unwrapping the <see cref="OtherNamespace.Other"/> object.
+        /// The conversion operator for unwrapping the <see cref="Company.OtherNamespace.Other"/> object.
         /// </summary>
         /// <param name="object">The object to unwrap.</param>
-        public static implicit operator OtherNamespace.Other(OtherWrapper @object) => @object?.Object;
+        public static implicit operator Company.OtherNamespace.Other(OtherWrapper @object) => @object?.Object;
 
         /// <summary>
         /// The wrapped object.
         /// </summary>
-        public OtherNamespace.Other Object { get; private set; }
+        public Company.OtherNamespace.Other Object { get; private set; }
 
         public int? Count { get => Object.Count; set => Object.Count = value; }
 
@@ -79,13 +78,13 @@ namespace OtherNamespace
 
         private FieldChangeEventHandlerWrapper _fieldChange;
 
-        private void FieldChangeHandler(object source, OtherNamespace.FieldChangeEventArgs e) => _fieldChange?.Invoke(source is OtherNamespace.Other o ? (OtherWrapper)o : source, (FieldChangeEventArgsWrapper)e);
+        private void FieldChangeHandler(object source, Company.OtherNamespace.FieldChangeEventArgs e) => _fieldChange?.Invoke(source is Company.OtherNamespace.Other o ? (OtherWrapper)o : source, (FieldChangeEventArgsWrapper)e);
 
         /// <summary>
         /// The wrapper constructor.
         /// </summary>
         /// <param name="object">The object to wrap.</param>
-        public OtherWrapper(OtherNamespace.Other @object)
+        public OtherWrapper(Company.OtherNamespace.Other @object)
         {
             Object = @object ?? throw new ArgumentNullException(nameof(@object));
         }

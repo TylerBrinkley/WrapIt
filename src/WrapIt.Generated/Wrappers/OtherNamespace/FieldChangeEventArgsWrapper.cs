@@ -1,25 +1,25 @@
 ﻿using System;
 
-namespace OtherNamespace
+namespace Wrappers.OtherNamespace
 {
     public partial class FieldChangeEventArgsWrapper : IFieldChangeEventArgs
     {
         /// <summary>
-        /// The conversion operator for wrapping the <see cref="OtherNamespace.FieldChangeEventArgs"/> object.
+        /// The conversion operator for wrapping the <see cref="Company.OtherNamespace.FieldChangeEventArgs"/> object.
         /// </summary>
         /// <param name="object">The object to wrap.</param>
-        public static implicit operator FieldChangeEventArgsWrapper(OtherNamespace.FieldChangeEventArgs @object) => @object != null ? new FieldChangeEventArgsWrapper(@object) : null;
+        public static implicit operator FieldChangeEventArgsWrapper(Company.OtherNamespace.FieldChangeEventArgs @object) => @object != null ? new FieldChangeEventArgsWrapper(@object) : null;
 
         /// <summary>
-        /// The conversion operator for unwrapping the <see cref="OtherNamespace.FieldChangeEventArgs"/> object.
+        /// The conversion operator for unwrapping the <see cref="Company.OtherNamespace.FieldChangeEventArgs"/> object.
         /// </summary>
         /// <param name="object">The object to unwrap.</param>
-        public static implicit operator OtherNamespace.FieldChangeEventArgs(FieldChangeEventArgsWrapper @object) => @object?.Object;
+        public static implicit operator Company.OtherNamespace.FieldChangeEventArgs(FieldChangeEventArgsWrapper @object) => @object?.Object;
 
         /// <summary>
         /// The wrapped object.
         /// </summary>
-        public OtherNamespace.FieldChangeEventArgs Object { get; private set; }
+        public Company.OtherNamespace.FieldChangeEventArgs Object { get; private set; }
 
         public int BorrowerPair => Object.BorrowerPair;
 
@@ -33,7 +33,7 @@ namespace OtherNamespace
         /// The wrapper constructor.
         /// </summary>
         /// <param name="object">The object to wrap.</param>
-        public FieldChangeEventArgsWrapper(OtherNamespace.FieldChangeEventArgs @object)
+        public FieldChangeEventArgsWrapper(Company.OtherNamespace.FieldChangeEventArgs @object)
         {
             Object = @object ?? throw new ArgumentNullException(nameof(@object));
         }

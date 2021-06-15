@@ -20,11 +20,14 @@ namespace WrapIt
 
         public TypeGeneration TypeGeneration { get; }
 
+        public bool IsValueType { get; }
+
         public ClassData(Type type, TypeName className, TypeName interfaceName, TypeBuildStatus buildStatus, ClassData? baseType, TypeGeneration typeGeneration)
             : base(type, className, interfaceName, buildStatus)
         {
             BaseType = baseType;
             TypeGeneration = typeGeneration;
+            IsValueType = type.IsValueType;
         }
 
         protected override Type[] GetInterfaces() => TypeGeneration.HasFlag(TypeGeneration.Instance) ? base.GetInterfaces() : Array.Empty<Type>();
@@ -60,7 +63,7 @@ namespace WrapIt
                 interfaceUsingDirectives.UnionWith(BaseType.InterfaceName.GetNamespaces());
                 classUsingDirectives.UnionWith(BaseType.ClassName.GetNamespaces());
             }
-            else if (TypeGeneration.HasFlag(TypeGeneration.Instance))
+            else if (TypeGeneration.HasFlag(TypeGeneration.Instance) && !IsValueType)
             {
                 // For ArgumentNullException
                 classUsingDirectives.Add("System");
@@ -304,7 +307,7 @@ namespace WrapIt
                 await writer.WriteLineAsync($"    public {(Type.IsSealed ? "sealed " : string.Empty)}partial class {ClassName} : {(BaseType is null ? string.Empty : $"{BaseType.ClassName}, ")}{InterfaceName}").ConfigureAwait(false);
                 await writer.WriteLineAsync("    {").ConfigureAwait(false);
 
-                var typeFullName = Type.FullName;
+                var typeFullName = Type.FullName.Replace('+', '.');
                 if (TypeGeneration.HasFlag(TypeGeneration.Instance))
                 {
                     if (builder.DocumentationGeneration != DocumentationGeneration.None)
@@ -316,7 +319,14 @@ namespace WrapIt
                     }
                     if (DirectDerivedTypes.Count == 0)
                     {
-                        await writer.WriteLineAsync($"        public static implicit operator {ClassName}({typeFullName} {ObjectParamName}) => {ObjectParamName} != null ? new {ClassName}({ObjectParamName}) : null;").ConfigureAwait(false);
+                        if (IsValueType)
+                        {
+                            await writer.WriteLineAsync($"        public static implicit operator {ClassName}({typeFullName} {ObjectParamName}) => new {ClassName}({ObjectParamName});").ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            await writer.WriteLineAsync($"        public static implicit operator {ClassName}({typeFullName} {ObjectParamName}) => {ObjectParamName} != null ? new {ClassName}({ObjectParamName}) : null;").ConfigureAwait(false);
+                        }
                     }
                     else
                     {
@@ -380,7 +390,14 @@ namespace WrapIt
                         await writer.WriteLineAsync($@"        /// </summary>").ConfigureAwait(false);
                         await writer.WriteLineAsync($@"        /// <param name=""object"">The object to unwrap.</param>").ConfigureAwait(false);
                     }
-                    await writer.WriteLineAsync($"        public static implicit operator {typeFullName}({ClassName} {ObjectParamName}) => {ObjectParamName}?.{ObjectName};").ConfigureAwait(false);
+                    if (IsValueType)
+                    {
+                        await writer.WriteLineAsync($"        public static implicit operator {typeFullName}({ClassName} {ObjectParamName}) => {ObjectParamName}?.{ObjectName} ?? default{(builder.MinCSharpVersion < 7.1M ? $"({typeFullName})" : string.Empty)};").ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        await writer.WriteLineAsync($"        public static implicit operator {typeFullName}({ClassName} {ObjectParamName}) => {ObjectParamName}?.{ObjectName};").ConfigureAwait(false);
+                    }
                     await writer.WriteLineAsync().ConfigureAwait(false);
 
                     if (builder.DocumentationGeneration != DocumentationGeneration.None)
@@ -395,7 +412,7 @@ namespace WrapIt
                     }
                     else
                     {
-                        await writer.WriteLineAsync($"        public {typeFullName} {ObjectName} {{ get; private set; }}").ConfigureAwait(false);
+                        await writer.WriteLineAsync($"        public {typeFullName} {ObjectName} {{ get; {(IsValueType ? string.Empty : "private ")}set; }}").ConfigureAwait(false);
                     }
                     await writer.WriteLineAsync().ConfigureAwait(false);
                 }
@@ -437,7 +454,31 @@ namespace WrapIt
                                 await writer.WriteLineAsync($"        [Obsolete{(property.ObsoleteMessage.Length > 0 ? $"(\"{property.ObsoleteMessage}\")" : string.Empty)}]");
                             }
                             var basicArgumentList = string.Join(", ", property.Parameters.Select(p => p.GetAsArgument()));
-                            await writer.WriteLineAsync($"        public {property.Type.ClassName} this[{string.Join(", ", property.Parameters.Select(p => p.GetAsClassParameter()))}] {(property.HasGetter && !property.HasSetter ? $"=> {property.Type.GetCodeToConvertFromActualType($"{accessorName}[{basicArgumentList}]")};" : $"{{ {(property.HasGetter ? $"get {(builder.MinCSharpVersion >= 7M ? "=>" : "{ return")} {property.Type.GetCodeToConvertFromActualType($"{accessorName}[{basicArgumentList}]")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}{(property.HasSetter ? $"set {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {accessorName}[{basicArgumentList}] = {property.Type.GetCodeToConvertToActualType("value")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}}}")}").ConfigureAwait(false);
+                            await writer.WriteAsync($"        public {property.Type.ClassName} this[{string.Join(", ", property.Parameters.Select(p => p.GetAsClassParameter()))}] ").ConfigureAwait(false);
+                            if (property.HasGetter && !property.HasSetter)
+                            {
+                                await writer.WriteLineAsync($"=> {property.Type.GetCodeToConvertFromActualType($"{accessorName}[{basicArgumentList}]")};").ConfigureAwait(false);
+                            }
+                            else
+                            {
+                                await writer.WriteAsync("{ ").ConfigureAwait(false);
+                                if (property.HasGetter)
+                                {
+                                    await writer.WriteAsync($"get {(builder.MinCSharpVersion >= 7M ? "=>" : "{ return")} {property.Type.GetCodeToConvertFromActualType($"{accessorName}[{basicArgumentList}]")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} ").ConfigureAwait(false);
+                                }
+                                if (property.HasSetter)
+                                {
+                                    if (IsValueType)
+                                    {
+                                        await writer.WriteAsync($"set {{ var {ObjectParamName} = {ObjectName}; {ObjectParamName}[{basicArgumentList}] = {property.Type.GetCodeToConvertToActualType("value")}; {ObjectName} = {ObjectParamName}; }} ").ConfigureAwait(false);
+                                    }
+                                    else
+                                    {
+                                        await writer.WriteAsync($"set {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {accessorName}[{basicArgumentList}] = {property.Type.GetCodeToConvertToActualType("value")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} ").ConfigureAwait(false);
+                                    }
+                                }
+                                await writer.WriteLineAsync("}").ConfigureAwait(false);
+                            }
                             if (hasExplicitInterfaceImplementation)
                             {
                                 var advancedArgumentList = string.Join(", ", property.Parameters.Select(p => p.Type.GetCodeToConvertToClassType(p.Name)));
@@ -492,7 +533,31 @@ namespace WrapIt
                                 {
                                     await writer.WriteLineAsync($"        [Obsolete{(property.ObsoleteMessage.Length > 0 ? $"(\"{property.ObsoleteMessage}\")" : string.Empty)}]");
                                 }
-                                await writer.WriteLineAsync($"        public {property.Type.ClassName} {property.Name} {(property.HasGetter && !property.HasSetter ? $"=> {property.Type.GetCodeToConvertFromActualType($"{accessorName}.{property.Name}")};" : $"{{ {(property.HasGetter ? $"get {(builder.MinCSharpVersion >= 7M ? "=>" : "{ return")} {property.Type.GetCodeToConvertFromActualType($"{accessorName}.{property.Name}")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}{(property.HasSetter ? $"set {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {accessorName}.{property.Name} = {property.Type.GetCodeToConvertToActualType("value")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} " : string.Empty)}}}")}").ConfigureAwait(false);
+                                await writer.WriteAsync($"        public {property.Type.ClassName} {property.Name} ").ConfigureAwait(false);
+                                if (property.HasGetter && !property.HasSetter)
+                                {
+                                    await writer.WriteLineAsync($"=> {property.Type.GetCodeToConvertFromActualType($"{accessorName}.{property.Name}")};").ConfigureAwait(false);
+                                }
+                                else
+                                {
+                                    await writer.WriteAsync("{ ").ConfigureAwait(false);
+                                    if (property.HasGetter)
+                                    {
+                                        await writer.WriteAsync($"get {(builder.MinCSharpVersion >= 7M ? "=>" : "{ return")} {property.Type.GetCodeToConvertFromActualType($"{accessorName}.{property.Name}")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} ").ConfigureAwait(false);
+                                    }
+                                    if (property.HasSetter)
+                                    {
+                                        if (IsValueType)
+                                        {
+                                            await writer.WriteAsync($"set {{ var {ObjectParamName} = {ObjectName}; {ObjectParamName}.{property.Name} = {property.Type.GetCodeToConvertToActualType("value")}; {ObjectName} = {ObjectParamName}; }} ").ConfigureAwait(false);
+                                        }
+                                        else
+                                        {
+                                            await writer.WriteAsync($"set {(builder.MinCSharpVersion >= 7M ? "=>" : "{")} {accessorName}.{property.Name} = {property.Type.GetCodeToConvertToActualType("value")};{(builder.MinCSharpVersion >= 7M ? string.Empty : " }")} ").ConfigureAwait(false);
+                                        }
+                                    }
+                                    await writer.WriteLineAsync("}").ConfigureAwait(false);
+                                }
                             }
                             if (hasExplicitInterfaceImplementation)
                             {
@@ -656,7 +721,7 @@ namespace WrapIt
 
                 // TODO: Add explicit interface implementation support for events
 
-                if (!TypeGeneration.HasFlag(TypeGeneration.Instance))
+                if (IsValueType || !TypeGeneration.HasFlag(TypeGeneration.Instance))
                 {
                     if (builder.DocumentationGeneration != DocumentationGeneration.None)
                     {
@@ -667,8 +732,12 @@ namespace WrapIt
                     await writer.WriteLineAsync($"        public {ClassName}()").ConfigureAwait(false);
                     await writer.WriteLineAsync("        {").ConfigureAwait(false);
                     await writer.WriteLineAsync("        }").ConfigureAwait(false);
+                    if (IsValueType)
+                    {
+                        await writer.WriteLineAsync().ConfigureAwait(false);
+                    }
                 }
-                else
+                if (TypeGeneration.HasFlag(TypeGeneration.Instance))
                 {
                     if (builder.DocumentationGeneration != DocumentationGeneration.None)
                     {
@@ -687,7 +756,11 @@ namespace WrapIt
                     else
                     {
                         await writer.WriteLineAsync("        {").ConfigureAwait(false);
-                        if (builder.MinCSharpVersion >= 7M)
+                        if (IsValueType)
+                        {
+                            await writer.WriteLineAsync($"            {ObjectName} = {ObjectParamName};").ConfigureAwait(false);
+                        }
+                        else if (builder.MinCSharpVersion >= 7M)
                         {
                             await writer.WriteLineAsync($"            {ObjectName} = {ObjectParamName} ?? throw new ArgumentNullException(nameof({ObjectParamName}));").ConfigureAwait(false);
                         }

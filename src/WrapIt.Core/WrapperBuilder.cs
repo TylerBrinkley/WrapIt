@@ -83,15 +83,16 @@ namespace WrapIt
             if (!typeDatas.TryGetValue(new TypeData(type), out var typeData))
             {
                 var typeName = type.Name;
+
                 var isEnum = type.IsEnum;
                 TypeGeneration typeGeneration;
-                if ((!type.IsValueType || (isEnum && EnumFullNameFormat != null)) && _assembliesWithTypesToWrap.Contains(type.Assembly) && (typeGeneration = TypeResolver?.Invoke(type) ?? TypeGeneration.StaticAndInstance) != TypeGeneration.None)
+                if ((!isEnum || EnumFullNameFormat != null) && _assembliesWithTypesToWrap.Contains(type.Assembly) && (typeGeneration = TypeResolver?.Invoke(type) ?? TypeGeneration.StaticAndInstance) != TypeGeneration.None)
                 {
-                    var typeNamespace = type.Namespace;
+                    var typeNamespace = GetNamespace(type);
                     var baseType = type.BaseType;
                     if (isEnum)
                     {
-                        var enumFullName = EnumFullNameFormat!(type.Namespace, type.Name);
+                        var enumFullName = EnumFullNameFormat!(typeNamespace, type.Name);
                         typeData = new EnumData(type, GetTypeName(enumFullName));
                         typeDatas.Add(typeData);
                     }
@@ -99,7 +100,7 @@ namespace WrapIt
                     {
                         var elementType = type.GetElementType();
                         var elementTypeData = GetTypeData(elementType, typeDatas);
-                        var className = new GenericTypeName("WrapIt.Collections", "ArrayWrapper", new[] { new TypeName(elementType.Namespace, elementType.Name, true), elementTypeData.ClassName, elementTypeData.InterfaceName });
+                        var className = new GenericTypeName("WrapIt.Collections", "ArrayWrapper", new[] { new TypeName(GetNamespace(elementType), elementType.Name, true), elementTypeData.ClassName, elementTypeData.InterfaceName });
                         var interfaceName = new GenericTypeName("System.Collections.Generic", "IList", new[] { elementTypeData.InterfaceName });
                         typeData = new CollectionData(type, className, interfaceName, elementTypeData);
                         typeDatas.Add(typeData);
@@ -179,7 +180,7 @@ namespace WrapIt
                     var elementTypeData = GetTypeData(elementType, typeDatas);
                     if (elementTypeData.BuildStatus != TypeBuildStatus.NotBuilding)
                     {
-                        className = new GenericTypeName("WrapIt.Collections", "EnumerableWrapper", new[] { new TypeName(elementType.Namespace, elementType.Name, true), elementTypeData.ClassName, elementTypeData.InterfaceName });
+                        className = new GenericTypeName("WrapIt.Collections", "EnumerableWrapper", new[] { new TypeName(GetNamespace(elementType), elementType.Name, true), elementTypeData.ClassName, elementTypeData.InterfaceName });
                         interfaceName = new GenericTypeName("System.Collections.Generic", "IEnumerable", new[] { elementTypeData.InterfaceName });
                         return new CollectionData(type, className, interfaceName, elementTypeData);
                     }
@@ -190,7 +191,7 @@ namespace WrapIt
                     var elementTypeData = GetTypeData(elementType, typeDatas);
                     if (elementTypeData.BuildStatus != TypeBuildStatus.NotBuilding)
                     {
-                        className = new GenericTypeName("WrapIt.Collections", "CollectionWrapper", new[] { new TypeName(elementType.Namespace, elementType.Name, true), elementTypeData.ClassName, elementTypeData.InterfaceName });
+                        className = new GenericTypeName("WrapIt.Collections", "CollectionWrapper", new[] { new TypeName(GetNamespace(elementType), elementType.Name, true), elementTypeData.ClassName, elementTypeData.InterfaceName });
                         interfaceName = new GenericTypeName("System.Collections.Generic", "ICollection", new[] { elementTypeData.InterfaceName });
                         return new CollectionData(type, className, interfaceName, elementTypeData);
                     }
@@ -201,7 +202,7 @@ namespace WrapIt
                     var elementTypeData = GetTypeData(elementType, typeDatas);
                     if (elementTypeData.BuildStatus != TypeBuildStatus.NotBuilding)
                     {
-                        className = new GenericTypeName("WrapIt.Collections", "ListWrapper", new[] { new TypeName(elementType.Namespace, elementType.Name, true), elementTypeData.ClassName, elementTypeData.InterfaceName });
+                        className = new GenericTypeName("WrapIt.Collections", "ListWrapper", new[] { new TypeName(GetNamespace(elementType), elementType.Name, true), elementTypeData.ClassName, elementTypeData.InterfaceName });
                         interfaceName = new GenericTypeName("System.Collections.Generic", "IList", new[] { elementTypeData.InterfaceName });
                         return new CollectionData(type, className, interfaceName, elementTypeData);
                     }
@@ -212,7 +213,7 @@ namespace WrapIt
                     var elementTypeData = GetTypeData(elementType, typeDatas);
                     if (elementTypeData.BuildStatus != TypeBuildStatus.NotBuilding)
                     {
-                        className = new GenericTypeName("WrapIt.Collections", "SetWrapper", new[] { new TypeName(elementType.Namespace, elementType.Name, true), elementTypeData.ClassName, elementTypeData.InterfaceName });
+                        className = new GenericTypeName("WrapIt.Collections", "SetWrapper", new[] { new TypeName(GetNamespace(elementType), elementType.Name, true), elementTypeData.ClassName, elementTypeData.InterfaceName });
                         interfaceName = new GenericTypeName("System.Collections.Generic", "ISet", new[] { elementTypeData.InterfaceName });
                         return new CollectionData(type, className, interfaceName, elementTypeData);
                     }
@@ -226,7 +227,7 @@ namespace WrapIt
                     var valueTypeData = GetTypeData(valueType, typeDatas);
                     if (keyTypeData.BuildStatus == TypeBuildStatus.NotBuilding && valueTypeData.BuildStatus != TypeBuildStatus.NotBuilding)
                     {
-                        className = new GenericTypeName("WrapIt.Collections", "DictionaryWrapper", new[] { keyTypeData.ClassName, new TypeName(valueType.Namespace, valueType.Name, true), valueTypeData.ClassName, valueTypeData.InterfaceName });
+                        className = new GenericTypeName("WrapIt.Collections", "DictionaryWrapper", new[] { keyTypeData.ClassName, new TypeName(GetNamespace(valueType), valueType.Name, true), valueTypeData.ClassName, valueTypeData.InterfaceName });
                         interfaceName = new GenericTypeName("System.Collections.Generic", "IDictionary", new[] { keyTypeData.ClassName, valueTypeData.InterfaceName });
                         return new DictionaryData(type, className, interfaceName, keyTypeData, valueTypeData);
                     }
@@ -237,7 +238,7 @@ namespace WrapIt
                     var elementTypeData = GetTypeData(elementType, typeDatas);
                     if (elementTypeData.BuildStatus != TypeBuildStatus.NotBuilding)
                     {
-                        className = new GenericTypeName("WrapIt.Collections", "ReadOnlyCollectionWrapper", new[] { new TypeName(elementType.Namespace, elementType.Name, true), elementTypeData.ClassName, elementTypeData.InterfaceName });
+                        className = new GenericTypeName("WrapIt.Collections", "ReadOnlyCollectionWrapper", new[] { new TypeName(GetNamespace(elementType), elementType.Name, true), elementTypeData.ClassName, elementTypeData.InterfaceName });
                         interfaceName = new GenericTypeName("System.Collections.Generic", "IReadOnlyCollection", new[] { elementTypeData.InterfaceName });
                         return new CollectionData(type, className, interfaceName, elementTypeData);
                     }
@@ -248,7 +249,7 @@ namespace WrapIt
                     var elementTypeData = GetTypeData(elementType, typeDatas);
                     if (elementTypeData.BuildStatus != TypeBuildStatus.NotBuilding)
                     {
-                        className = new GenericTypeName("WrapIt.Collections", "ReadOnlyListWrapper", new[] { new TypeName(elementType.Namespace, elementType.Name, true), elementTypeData.ClassName, elementTypeData.InterfaceName });
+                        className = new GenericTypeName("WrapIt.Collections", "ReadOnlyListWrapper", new[] { new TypeName(GetNamespace(elementType), elementType.Name, true), elementTypeData.ClassName, elementTypeData.InterfaceName });
                         interfaceName = new GenericTypeName("System.Collections.Generic", "IReadOnlyList", new[] { elementTypeData.InterfaceName });
                         return new CollectionData(type, className, interfaceName, elementTypeData);
                     }
@@ -262,15 +263,15 @@ namespace WrapIt
                     var valueTypeData = GetTypeData(valueType, typeDatas);
                     if (keyTypeData.BuildStatus == TypeBuildStatus.NotBuilding && valueTypeData.BuildStatus != TypeBuildStatus.NotBuilding)
                     {
-                        className = new GenericTypeName("WrapIt.Collections", "ReadOnlyDictionaryWrapper", new[] { keyTypeData.ClassName, new TypeName(valueType.Namespace, valueType.Name, true), valueTypeData.ClassName, valueTypeData.InterfaceName });
+                        className = new GenericTypeName("WrapIt.Collections", "ReadOnlyDictionaryWrapper", new[] { keyTypeData.ClassName, new TypeName(GetNamespace(valueType), valueType.Name, true), valueTypeData.ClassName, valueTypeData.InterfaceName });
                         interfaceName = new GenericTypeName("System.Collections.Generic", "IReadOnlyDictionary", new[] { keyTypeData.ClassName, valueTypeData.InterfaceName });
                         return new DictionaryData(type, className, interfaceName, keyTypeData, valueTypeData);
                     }
                 }
                 var typeName = type.Name.Substring(0, type.Name.IndexOf('`'));
                 var genericTypeNames = type.GenericTypeArguments.Select(t => GetTypeData(t, typeDatas));
-                className = new GenericTypeName(type.Namespace, typeName, genericTypeNames.Select(t => t.ClassName));
-                interfaceName = new GenericTypeName(type.Namespace, typeName, genericTypeNames.Select(t => t.InterfaceName));
+                className = new GenericTypeName(GetNamespace(type), typeName, genericTypeNames.Select(t => t.ClassName));
+                interfaceName = new GenericTypeName(GetNamespace(type), typeName, genericTypeNames.Select(t => t.InterfaceName));
             }
             else if (type.IsByRef)
             {
@@ -279,7 +280,7 @@ namespace WrapIt
             }
             else
             {
-                className = new TypeName(type.Namespace, type.Name, AssembliesWithTypesToWrap.Contains(type.Assembly));
+                className = new TypeName(GetNamespace(type), type.Name, AssembliesWithTypesToWrap.Contains(type.Assembly));
             }
             if (type.BaseType == typeof(MulticastDelegate))
             {
@@ -299,6 +300,23 @@ namespace WrapIt
         {
             var lastPeriodIndex = fullName.LastIndexOf('.');
             return new TypeName(fullName.Substring(0, lastPeriodIndex), fullName.Substring(lastPeriodIndex + 1));
+        }
+
+        private static string GetNamespace(Type type)
+        {
+            var typeNamespace = type.Namespace;
+            var declaringType = type.DeclaringType;
+            var additionalNamespace = string.Empty;
+            while (declaringType != null)
+            {
+                additionalNamespace = $".{declaringType.Name}" + additionalNamespace;
+                declaringType = declaringType.DeclaringType;
+            }
+            if (additionalNamespace.Length > 0)
+            {
+                typeNamespace += additionalNamespace;
+            }
+            return typeNamespace;
         }
     }
 }

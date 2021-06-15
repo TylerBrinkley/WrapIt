@@ -1,7 +1,6 @@
 ﻿using System;
-using Company;
 
-namespace OtherNamespace
+namespace Wrappers.OtherNamespace
 {
     public partial interface IOther
     {

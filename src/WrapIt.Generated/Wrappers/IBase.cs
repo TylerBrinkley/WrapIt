@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using OtherNamespace;
+using Wrappers.Base;
+using Wrappers.OtherNamespace;
 
-namespace Company
+namespace Wrappers
 {
     /// <summary>
     /// The Base Class.
@@ -14,6 +15,7 @@ namespace Company
         /// </summary>
         string Dog { get; set; }
         IList<IOther> InterfaceList { get; set; }
+        INested NestedProperty { get; set; }
         DateTime Raccoon { get; }
 
         void DoStuff(IOther other);

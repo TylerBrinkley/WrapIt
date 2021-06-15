@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using OtherNamespace;
+using Company.OtherNamespace;
 
 namespace Company
 {
@@ -18,6 +18,8 @@ namespace Company
 
         public IList<Other> InterfaceList { get; set; }
 
+        public Nested NestedProperty { get; set; }
+
         public DateTime Raccoon => _raccoon;
 
         public virtual void DoStuff(Other other)
@@ -28,6 +30,11 @@ namespace Company
 
         public void ParamArrayTest(params Other[] others)
         {
+        }
+
+        public class Nested
+        {
+            public DateTimeKind Kind { get; set; }
         }
     }
 }

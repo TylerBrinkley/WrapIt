@@ -1,7 +1,6 @@
 ﻿using System;
-using Company;
 
-namespace OtherNamespace
+namespace Company.OtherNamespace
 {
     public class Other
     {

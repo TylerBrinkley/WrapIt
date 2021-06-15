@@ -1,4 +1,4 @@
-﻿namespace OtherNamespace
+﻿namespace Wrappers.OtherNamespace
 {
     public partial interface IFieldChangeEventArgs
     {

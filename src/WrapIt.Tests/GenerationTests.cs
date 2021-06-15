@@ -18,7 +18,12 @@ namespace WrapIt.Tests
         [Test]
         public async Task Generation()
         {
-            var builder = new WrapperBuilder();
+            var builder = new WrapperBuilder
+            {
+                ClassFullNameFormat = (ns, nm) => $"Wrappers{ns.Substring("Company".Length)}.{nm}Wrapper",
+                DelegateFullNameFormat = (ns, nm) => $"Wrappers{ns.Substring("Company".Length)}.{nm}Wrapper",
+                InterfaceFullNameFormat = (ns, nm) => $"Wrappers{ns.Substring("Company".Length)}.I{nm}"
+            };
             builder.RootTypes.Add(typeof(Derived));
             builder.PropertyResolver += (type, propertyInfo) =>
                 type == typeof(Derived) && propertyInfo.Name == nameof(Derived.CachedProperty)
@@ -26,19 +31,33 @@ namespace WrapIt.Tests
                 : MemberGeneration.Full;
             await builder.BuildAsync(GetWriter);
 
-            foreach (var directory in new DirectoryInfo(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)).Parent.Parent.Parent.Parent.EnumerateDirectories("WrapIt.Generated").First().EnumerateDirectories("Generated").First().EnumerateDirectories())
+            var root = new DirectoryInfo(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)).Parent.Parent.Parent.Parent.EnumerateDirectories("WrapIt.Generated").First();
+            var wrappersDirectory = root.EnumerateDirectories("Wrappers").First();
+            Validate(wrappersDirectory, root.FullName.Length + 1);
+            Assert.AreEqual(0, _files.Count, $"Missing the following wrappers '{string.Join("', '", _files.Keys)}'");
+        }
+
+        private void Validate(DirectoryInfo directory, int rootLength)
+        {
+            foreach (var file in directory.EnumerateFiles())
             {
-                foreach (var file in directory.EnumerateFiles())
+                var classFullName = $"{directory.FullName.Substring(rootLength).Replace('\\', '.')}.{Path.GetFileNameWithoutExtension(file.Name)}";
+                if (!_files.TryGetValue(classFullName, out var stream))
                 {
-                    var classFullName = $"{directory.Name}.{Path.GetFileNameWithoutExtension(file.Name)}";
-                    var stream = _files[classFullName];
-                    stream.Position = 0;
-                    var code = new StreamReader(stream).ReadToEnd();
-                    using (var sr = file.OpenText())
-                    {
-                        Assert.AreEqual(sr.ReadToEnd(), code, classFullName);
-                    }
+                    Assert.Fail($"Could not find generated '{classFullName}'");
                 }
+                _files.Remove(classFullName);
+                stream.Position = 0;
+                var code = new StreamReader(stream).ReadToEnd();
+                using (var sr = file.OpenText())
+                {
+                    Assert.AreEqual(sr.ReadToEnd(), code, classFullName);
+                }
+            }
+
+            foreach (var subDirectory in directory.EnumerateDirectories())
+            {
+                Validate(subDirectory, rootLength);
             }
         }
 

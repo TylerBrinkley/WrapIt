@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using OtherNamespace;
 using WrapIt.Collections;
+using Wrappers.Base;
+using Wrappers.OtherNamespace;
 
-namespace Company
+namespace Wrappers
 {
     /// <summary>
     /// The Base Class.
@@ -35,9 +36,13 @@ namespace Company
         /// <inheritdoc/>
         public string Dog { get => Object.Dog; set => Object.Dog = value; }
 
-        public ListWrapper<OtherNamespace.Other, OtherWrapper, IOther> InterfaceList { get => ListWrapper<OtherNamespace.Other, OtherWrapper, IOther>.Create(Object.InterfaceList); set => Object.InterfaceList = value?.ToCollection(); }
+        public ListWrapper<Company.OtherNamespace.Other, OtherWrapper, IOther> InterfaceList { get => ListWrapper<Company.OtherNamespace.Other, OtherWrapper, IOther>.Create(Object.InterfaceList); set => Object.InterfaceList = value?.ToCollection(); }
 
-        IList<IOther> IBase.InterfaceList { get => InterfaceList; set => InterfaceList = ListWrapper<OtherNamespace.Other, OtherWrapper, IOther>.Create(value); }
+        IList<IOther> IBase.InterfaceList { get => InterfaceList; set => InterfaceList = ListWrapper<Company.OtherNamespace.Other, OtherWrapper, IOther>.Create(value); }
+
+        public NestedWrapper NestedProperty { get => Object.NestedProperty; set => Object.NestedProperty = value; }
+
+        INested IBase.NestedProperty { get => NestedProperty; set => NestedProperty = (NestedWrapper)value; }
 
         public DateTime Raccoon => Object.Raccoon;
 
@@ -60,8 +65,8 @@ namespace Company
         /// <inheritdoc/>
         public override int GetHashCode() => Object.GetHashCode();
 
-        public void ParamArrayTest(ArrayWrapper<OtherNamespace.Other, OtherWrapper, IOther> others) => Object.ParamArrayTest(others?.ToCollection());
+        public void ParamArrayTest(ArrayWrapper<Company.OtherNamespace.Other, OtherWrapper, IOther> others) => Object.ParamArrayTest(others?.ToCollection());
 
-        void IBase.ParamArrayTest(IList<IOther> others) => ParamArrayTest(ArrayWrapper<OtherNamespace.Other, OtherWrapper, IOther>.Create(others));
+        void IBase.ParamArrayTest(IList<IOther> others) => ParamArrayTest(ArrayWrapper<Company.OtherNamespace.Other, OtherWrapper, IOther>.Create(others));
     }
 }

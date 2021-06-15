@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-namespace Company
+namespace Wrappers
 {
     public partial class CollectionWrapper : ICollection
     {

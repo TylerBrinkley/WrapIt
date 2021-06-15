@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using OtherNamespace;
+using Company.OtherNamespace;
 
 namespace Company
 {
@@ -21,6 +21,8 @@ namespace Company
         public Other this[int index] => Cat;
 
         public List<string> Names { get; set; }
+
+        public Point Point { get; set; }
 
         public override void DoStuff(Other other)
         {

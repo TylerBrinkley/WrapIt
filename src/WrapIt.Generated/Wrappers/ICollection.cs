@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-namespace Company
+namespace Wrappers
 {
     public partial interface ICollection : IEnumerable, IEnumerable<IDerived>
     {

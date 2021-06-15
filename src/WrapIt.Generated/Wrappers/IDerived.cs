@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using OtherNamespace;
+using Wrappers.OtherNamespace;
 
-namespace Company
+namespace Wrappers
 {
     public partial interface IDerived : IBase, IComparable
     {
@@ -13,5 +13,6 @@ namespace Company
         ICollection Collection { get; set; }
         IOther this[int index] { get; }
         List<string> Names { get; set; }
+        IPoint Point { get; set; }
     }
 }

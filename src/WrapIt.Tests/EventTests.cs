@@ -1,5 +1,6 @@
 ﻿using NUnit.Framework;
-using OtherNamespace;
+using Company.OtherNamespace;
+using Wrappers.OtherNamespace;
 
 namespace WrapIt.Tests
 {

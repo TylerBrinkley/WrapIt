@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using OtherNamespace;
 using WrapIt.Collections;
+using Wrappers.OtherNamespace;
 
-namespace Company
+namespace Wrappers
 {
     public sealed partial class DerivedWrapper : BaseWrapper, IDerived
     {
@@ -49,6 +49,10 @@ namespace Company
         IOther IDerived.this[int index] => this[index];
 
         public List<string> Names { get => Object.Names; set => Object.Names = value; }
+
+        public PointWrapper Point { get => Object.Point; set => Object.Point = value; }
+
+        IPoint IDerived.Point { get => Point; set => Point = (PointWrapper)value; }
 
         /// <summary>
         /// The wrapper constructor.

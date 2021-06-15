@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace OtherNamespace
+namespace Company.OtherNamespace
 {
     public class FieldChangeEventArgs : EventArgs
     {
