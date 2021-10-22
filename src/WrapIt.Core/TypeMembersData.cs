@@ -38,7 +38,7 @@ namespace WrapIt
         {
         }
 
-        protected virtual Type[] GetInterfaces() => Type.GetInterfaces();
+        internal virtual Type[] GetInterfaces() => Type.GetInterfaces();
 
         public void Initialize(WrapperBuilder builder, DocumentationProvider? documentationProvider, HashSet<TypeData> typeDatas, BindingFlags bindingFlags)
         {
@@ -67,13 +67,9 @@ namespace WrapIt
                     {
                         isIEnumerable = true;
                     }
-                    if (@interface.IsGenericType)
+                    if (!isGenericIEnumerable && @interface.IsGenericType && @interface.GetGenericTypeDefinition() == typeof(IEnumerable<>))
                     {
-                        var genericTypeDefinition = @interface.GetGenericTypeDefinition();
-                        if (!isGenericIEnumerable && genericTypeDefinition == typeof(IEnumerable<>))
-                        {
-                            isGenericIEnumerable = true;
-                        }
+                        isGenericIEnumerable = true;
                     }
                     var interfaceTypeData = (InterfaceData)builder.GetTypeData(@interface, typeDatas);
                     interfaceTypeData.Initialize(builder, documentationProvider, typeDatas, bindingFlags);
@@ -243,6 +239,7 @@ namespace WrapIt
                         genericArg = returnType;
                     }
                 }
+
                 if (genericArg != null)
                 {
                     var interfaceTypeData = (InterfaceData)builder.GetTypeData(typeof(IEnumerable<>).MakeGenericType(genericArg.Type), typeDatas);
@@ -255,6 +252,39 @@ namespace WrapIt
                             Methods.RemoveAt(i);
                             break;
                         }
+                    }
+
+                    var iCollectionInterface = Interfaces.FirstOrDefault(i => i.Type == typeof(ICollection));
+                    var iListInterface = Interfaces.FirstOrDefault(i => i.Type == typeof(IList));
+                    if (iCollectionInterface != null || Properties.Any(p => p.Name == "Count" && p.Type.Type == typeof(int) && p.Parameters.Count == 0))
+                    {
+                        interfaceTypeData = (InterfaceData)builder.GetTypeData(typeof(IReadOnlyCollection<>).MakeGenericType(genericArg.Type), typeDatas);
+                        interfaceTypeData.Initialize(builder, documentationProvider, typeDatas, bindingFlags);
+                        Interfaces.Add(interfaceTypeData);
+                        AssignDeclaringInterfaceType(interfaceTypeData);
+
+                        if (iListInterface != null || Properties.Any(p => p.Name == "Item" && p.Type == genericArg && p.Parameters.Count == 1 && p.Parameters[0].Type.Type == typeof(int)))
+                        {
+                            interfaceTypeData = (InterfaceData)builder.GetTypeData(typeof(IReadOnlyList<>).MakeGenericType(genericArg.Type), typeDatas);
+                            interfaceTypeData.Initialize(builder, documentationProvider, typeDatas, bindingFlags);
+                            Interfaces.Add(interfaceTypeData);
+                            AssignDeclaringInterfaceType(interfaceTypeData);
+                        }
+                    }
+
+                    if (iListInterface != null)
+                    {
+                        interfaceTypeData = (InterfaceData)builder.GetTypeData(typeof(ICollection<>).MakeGenericType(genericArg.Type), typeDatas);
+                        interfaceTypeData.Initialize(builder, documentationProvider, typeDatas, bindingFlags);
+                        Interfaces.Add(interfaceTypeData);
+                        AssignDeclaringInterfaceType(interfaceTypeData);
+
+                        interfaceTypeData = (InterfaceData)builder.GetTypeData(typeof(IList<>).MakeGenericType(genericArg.Type), typeDatas);
+                        interfaceTypeData.Initialize(builder, documentationProvider, typeDatas, bindingFlags);
+                        Interfaces.Add(interfaceTypeData);
+                        AssignDeclaringInterfaceType(interfaceTypeData);
+
+                        RemoveNonGenericMembers();
                     }
                 }
             }
@@ -319,5 +349,58 @@ namespace WrapIt
         }
 
         protected abstract bool IncludeMethod(WrapperBuilder builder, MethodInfo method, HashSet<TypeData> typeDatas, out bool overrideObject);
+
+        private void AssignDeclaringInterfaceType(InterfaceData @interface)
+        {
+            foreach (var property in @interface.Properties)
+            {
+                var p = Properties.FirstOrDefault(p => p.Equals(property));
+                if (p != null && p.DeclaringInterfaceType == null)
+                {
+                    p.DeclaringInterfaceType = @interface;
+                }
+            }
+
+            foreach (var method in @interface.Methods)
+            {
+                var m = Methods.FirstOrDefault(m => m.Equals(method));
+                if (m != null && m.DeclaringInterfaceType == null)
+                {
+                    m.DeclaringInterfaceType = @interface;
+                }
+            }
+
+            foreach (var @event in @interface.Events)
+            {
+                var e = Events.FirstOrDefault(e => e.Equals(@event));
+                if (e != null && e.DeclaringInterfaceType == null)
+                {
+                    e.DeclaringInterfaceType = @interface;
+                }
+            }
+        }
+
+        private void RemoveNonGenericMembers()
+        {
+            for (var i = Properties.Count - 1; i >= 0; --i)
+            {
+                var property = Properties[i];
+                var declaringInterfaceType = property.DeclaringInterfaceType?.Type;
+                if ((declaringInterfaceType == typeof(IList) || declaringInterfaceType == typeof(ICollection)) && (property.Type.Type == typeof(object) || property.Parameters.Any(p => p.Type.Type == typeof(object) || p.Type.Type == typeof(Array))) && property.Name != "SyncRoot")
+                {
+                    Properties.RemoveAt(i);
+                }
+            }
+
+            for (var i = Methods.Count - 1; i >= 0; --i)
+            {
+                var method = Methods[i];
+                var declaringInterfaceType = method.DeclaringInterfaceType?.Type;
+                if ((declaringInterfaceType == typeof(IList) || declaringInterfaceType == typeof(ICollection)) && (method.ReturnType.Type == typeof(object) || method.Parameters.Any(p => p.Type.Type == typeof(object) || p.Type.Type == typeof(Array))))
+                {
+                    Methods.RemoveAt(i);
+                }
+            }
+        }
     }
 }

@@ -16,7 +16,7 @@ namespace Company
 
         public Other Cat { get; set; }
 
-        public Collection Collection { get; set; }
+        public MyCollection Collection { get; set; }
 
         public Other this[int index] => Cat;
 

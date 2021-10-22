@@ -4,10 +4,8 @@ using System.Collections.Generic;
 
 namespace Wrappers
 {
-    public partial interface ICollection : IEnumerable, IEnumerable<IDerived>
+    public partial interface IMyCollection : IList, IList<IDerived>, IReadOnlyList<IDerived>
     {
-        IDerived this[int index] { get; }
-
         /// <summary>
         /// Adds a name to the collection.
         /// </summary>

@@ -10,7 +10,7 @@ namespace Wrappers
         decimal Bird { set; }
         IOther CachedProperty { get; set; }
         IOther Cat { get; set; }
-        ICollection Collection { get; set; }
+        IMyCollection Collection { get; set; }
         IOther this[int index] { get; }
         List<string> Names { get; set; }
         IPoint Point { get; set; }

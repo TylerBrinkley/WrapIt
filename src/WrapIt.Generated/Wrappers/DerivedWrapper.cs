@@ -40,9 +40,9 @@ namespace Wrappers
 
         IOther IDerived.Cat { get => Cat; set => Cat = (OtherWrapper)value; }
 
-        public CollectionWrapper Collection { get => Object.Collection; set => Object.Collection = value; }
+        public MyCollectionWrapper Collection { get => Object.Collection; set => Object.Collection = value; }
 
-        ICollection IDerived.Collection { get => Collection; set => Collection = (CollectionWrapper)value; }
+        IMyCollection IDerived.Collection { get => Collection; set => Collection = (MyCollectionWrapper)value; }
 
         public OtherWrapper this[int index] => Object[index];
 
