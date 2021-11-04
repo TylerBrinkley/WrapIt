@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace WrapIt.Collections
 {
-    public sealed class DictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface> : IDictionary<TKey, TValueInterface>, IReadOnlyDictionary<TKey, TValueInterface>
+    public sealed class DictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface> : IDictionary<TKey, TValueInterface>, IReadOnlyDictionary<TKey, TValueInterface>, IDictionary
         where TKey : notnull
         where TValueWrapped : TValueInterface
     {
@@ -17,7 +18,7 @@ namespace WrapIt.Collections
         public static DictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface>? Create(IDictionary<TKey, TValueInterface>? dictionary) => dictionary switch
         {
             null => null,
-            DictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface> v0 => v0,
+            DictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface> o => o,
             _ => new DictionaryWrapper<TKey, TValue, TValueWrapped, TValueInterface>(dictionary)
         };
 
@@ -42,6 +43,20 @@ namespace WrapIt.Collections
         public int Count => InternalWrapper.Count;
 
         bool ICollection<KeyValuePair<TKey, TValueInterface>>.IsReadOnly => InternalWrapper.IsReadOnly;
+
+        ICollection IDictionary.Keys => Keys is ICollection c ? c : Keys.ToList();
+
+        ICollection IDictionary.Values => Values;
+
+        bool IDictionary.IsReadOnly => InternalWrapper.IsReadOnly;
+
+        bool IDictionary.IsFixedSize => InternalWrapper.UnderlyingCollection is IDictionary c && c.IsFixedSize;
+
+        object? ICollection.SyncRoot => (InternalWrapper.UnderlyingCollection as ICollection)?.SyncRoot;
+
+        bool ICollection.IsSynchronized => InternalWrapper.UnderlyingCollection is ICollection c && c.IsSynchronized;
+
+        object? IDictionary.this[object key] { get => this[(TKey)key]; set => this[(TKey)key] = (TValueWrapped)value!; }
 
         public DictionaryWrapper(IDictionary<TKey, TValue> dictionary)
         {
@@ -81,7 +96,7 @@ namespace WrapIt.Collections
 
         void ICollection<KeyValuePair<TKey, TValueInterface>>.CopyTo(KeyValuePair<TKey, TValueInterface>[] array, int arrayIndex)
         {
-            if (arrayIndex + Count > array.Length)
+            if ((uint)arrayIndex + Count > array.Length)
             {
                 throw new ArgumentOutOfRangeException("arrayIndex + Count must be less than or equal to array.Length");
             }
@@ -107,8 +122,19 @@ namespace WrapIt.Collections
 
         bool IReadOnlyDictionary<TKey, TValueInterface>.TryGetValue(TKey key, out TValueInterface value) => ((IDictionary<TKey, TValueInterface>)this).TryGetValue(key, out value);
 
+        bool IDictionary.Contains(object key) => ContainsKey((TKey)key);
+
+        void IDictionary.Add(object key, object value) => Add((TKey)key, (TValueWrapped)value);
+
+        IDictionaryEnumerator IDictionary.GetEnumerator() => throw new NotSupportedException();
+
+        void IDictionary.Remove(object key) => Remove((TKey)key);
+
+        void ICollection.CopyTo(Array array, int index) => ((ICollection<KeyValuePair<TKey, TValueInterface>>)this).CopyTo((KeyValuePair<TKey, TValueInterface>[])array, index);
+
         internal interface IDictionaryWrapperInternal : IDictionary<TKey, TValueWrapped>
         {
+            object UnderlyingCollection { get; }
             new CollectionWrapper<TValue, TValueWrapped, TValueInterface> Values { get; }
 
             Dictionary<TKey, TValue> ToDictionary();
@@ -117,6 +143,8 @@ namespace WrapIt.Collections
         private sealed class StandardDictionaryWrapper : IDictionaryWrapperInternal
         {
             private readonly IDictionary<TKey, TValue> _dictionary;
+
+            object IDictionaryWrapperInternal.UnderlyingCollection => _dictionary;
 
             public TValueWrapped this[TKey key] { get => Conversion<TValue, TValueWrapped>.Wrap(_dictionary[key]); set => _dictionary[key] = Conversion<TValue, TValueWrapped>.Unwrap(value); }
 
@@ -176,6 +204,8 @@ namespace WrapIt.Collections
         private sealed class CastedDictionaryWrapper : IDictionaryWrapperInternal
         {
             private readonly IDictionary<TKey, TValueInterface> _dictionary;
+
+            object IDictionaryWrapperInternal.UnderlyingCollection => _dictionary;
 
             public TValueWrapped this[TKey key] { get => (TValueWrapped)_dictionary[key]!; set => _dictionary[key] = value; }
 

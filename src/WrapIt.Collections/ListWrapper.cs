@@ -16,7 +16,7 @@ namespace WrapIt.Collections
         public static ListWrapper<T, TWrapped, TInterface>? Create(IList<TInterface>? list) => list switch
         {
             null => null,
-            ListWrapper<T, TWrapped, TInterface> v0 => v0,
+            ListWrapper<T, TWrapped, TInterface> o => o,
             _ => new ListWrapper<T, TWrapped, TInterface>(list)
         };
 

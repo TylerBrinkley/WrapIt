@@ -42,6 +42,8 @@ namespace WrapIt
 
         public override bool Equals(object? obj) => Equals(obj as PropertyData);
 
-        public bool Equals(PropertyData? other) => other != null && Name == other.Name && Type.Equals(other.Type) && HasGetter == other.HasGetter && HasSetter == other.HasSetter && Parameters.Count == other.Parameters.Count && Parameters.Select((p, i) => (p, i)).All(t => t.p.Equals(other.Parameters[t.i]));
+        public bool Equals(PropertyData? other) => Equals(other, checkReturnType: true);
+
+        public bool Equals(PropertyData? other, bool checkReturnType) => other != null && Name == other.Name && (!checkReturnType || (Type.Equals(other.Type) && HasGetter == other.HasGetter && HasSetter == other.HasSetter)) && Parameters.Count == other.Parameters.Count && Parameters.Select((p, i) => (p, i)).All(t => t.p.Equals(other.Parameters[t.i]));
     }
 }

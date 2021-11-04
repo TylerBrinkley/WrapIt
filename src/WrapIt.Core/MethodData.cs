@@ -39,6 +39,8 @@ namespace WrapIt
 
         public override bool Equals(object? obj) => Equals(obj as MethodData);
 
-        public bool Equals(MethodData? other) => other != null && Name == other.Name && ReturnType.Equals(other.ReturnType) && Parameters.Count == other.Parameters.Count && Parameters.Select((p, i) => (p, i)).All(t => t.p.Equals(other.Parameters[t.i]));
+        public bool Equals(MethodData? other) => Equals(other, checkReturnType: true);
+
+        public bool Equals(MethodData? other, bool checkReturnType) => other != null && Name == other.Name && (!checkReturnType || ReturnType.Equals(other.ReturnType)) && Parameters.Count == other.Parameters.Count && Parameters.Select((p, i) => (p, i)).All(t => t.p.Equals(other.Parameters[t.i]));
     }
 }

@@ -18,7 +18,7 @@ namespace Wrappers
         public static implicit operator BaseWrapper(Company.Base @object) => @object switch
         {
             null => null,
-            Company.Derived v0 => (DerivedWrapper)v0,
+            Company.Derived o => (DerivedWrapper)o,
             _ => new BaseWrapper(@object)
         };
 

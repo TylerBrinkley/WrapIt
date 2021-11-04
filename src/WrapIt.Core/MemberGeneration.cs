@@ -7,6 +7,7 @@
         Full = 2,
         WrapImplementationInCompilerFlag = 3,
         FullWithSafeCaching = 4,
-        WrapEventHandlerInCompilerFlag = 5
+        WrapEventHandlerInCompilerFlag = 5,
+        OnlyInImplementation = 6
     }
 }

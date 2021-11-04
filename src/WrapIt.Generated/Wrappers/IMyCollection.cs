@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Wrappers
 {
-    public partial interface IMyCollection : IList, IList<IDerived>, IReadOnlyList<IDerived>
+    public partial interface IMyCollection : IList<IDerived>
     {
         /// <summary>
         /// Adds a name to the collection.

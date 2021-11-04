@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Wrappers
 {
-    public partial class MyCollectionWrapper : IMyCollection
+    public partial class MyCollectionWrapper : IMyCollection, IList, IReadOnlyList<IDerived>
     {
         /// <summary>
         /// The conversion operator for wrapping the <see cref="Company.MyCollection"/> object.
@@ -29,19 +29,19 @@ namespace Wrappers
 
         IDerived IReadOnlyList<IDerived>.this[int index] => this[index];
 
+        bool ICollection<IDerived>.IsReadOnly => ((IList)Object).IsReadOnly;
+
+        IDerived IList<IDerived>.this[int index] { get => this[index]; set => ((IList)Object)[index] = ((DerivedWrapper)value).Object; }
+
         bool ICollection.IsSynchronized => ((ICollection)Object).IsSynchronized;
 
         object ICollection.SyncRoot => ((ICollection)Object).SyncRoot;
-
-        bool ICollection<IDerived>.IsReadOnly => ((IList)Object).IsReadOnly;
 
         bool IList.IsFixedSize => ((IList)Object).IsFixedSize;
 
         bool IList.IsReadOnly => ((IList)Object).IsReadOnly;
 
         object IList.this[int index] { get => this[index]; set => ((IList)Object)[index] = value is DerivedWrapper o ? o.Object : value; }
-
-        IDerived IList<IDerived>.this[int index] { get => this[index]; set => ((IList)Object)[index] = ((DerivedWrapper)value).Object; }
 
         /// <summary>
         /// The wrapper constructor.
@@ -71,8 +71,6 @@ namespace Wrappers
         /// <inheritdoc/>
         public override int GetHashCode() => Object.GetHashCode();
 
-        void ICollection.CopyTo(Array array, int index) => ((ICollection)Object).CopyTo(array, index);
-
         void ICollection<IDerived>.Add(IDerived item) => ((IList)Object).Add(((DerivedWrapper)item).Object);
 
         void ICollection<IDerived>.Clear() => ((IList)Object).Clear();
@@ -81,7 +79,7 @@ namespace Wrappers
 
         void ICollection<IDerived>.CopyTo(IDerived[] array, int arrayIndex)
         {
-            if (arrayIndex + Count > array.Length)
+            if ((uint)arrayIndex + Count > array.Length)
             {
                 throw new ArgumentOutOfRangeException("arrayIndex + Count must be less than or equal to array.Length");
             }
@@ -114,6 +112,25 @@ namespace Wrappers
 
         IEnumerator<IDerived> IEnumerable<IDerived>.GetEnumerator() => GetEnumerator();
 
+        int IList<IDerived>.IndexOf(IDerived item) => ((IList)Object).IndexOf(((DerivedWrapper)item).Object);
+
+        void IList<IDerived>.Insert(int index, IDerived item) => ((IList)Object).Insert(index, ((DerivedWrapper)item).Object);
+
+        void IList<IDerived>.RemoveAt(int index) => ((IList)Object).RemoveAt(index);
+
+        void ICollection.CopyTo(Array array, int index)
+        {
+            if ((uint)index + Count > array.Length)
+            {
+                throw new ArgumentOutOfRangeException("index + Count must be less than or equal to array.Length");
+            }
+
+            foreach (var item in this)
+            {
+                array.SetValue(item, index++);
+            }
+        }
+
         int IList.Add(object value) => ((IList)Object).Add(value is DerivedWrapper o ? o.Object : value);
 
         void IList.Clear() => ((IList)Object).Clear();
@@ -127,11 +144,5 @@ namespace Wrappers
         void IList.Remove(object value) => ((IList)Object).Remove(value is DerivedWrapper o ? o.Object : value);
 
         void IList.RemoveAt(int index) => ((IList)Object).RemoveAt(index);
-
-        int IList<IDerived>.IndexOf(IDerived item) => ((IList)Object).IndexOf(((DerivedWrapper)item).Object);
-
-        void IList<IDerived>.Insert(int index, IDerived item) => ((IList)Object).Insert(index, ((DerivedWrapper)item).Object);
-
-        void IList<IDerived>.RemoveAt(int index) => ((IList)Object).RemoveAt(index);
     }
 }

@@ -11,7 +11,7 @@ namespace WrapIt.Collections
         public static ReadOnlyListWrapper<T, TWrapped, TInterface>? Create(IReadOnlyList<TInterface>? list) => list switch
         {
             null => null,
-            ReadOnlyListWrapper<T, TWrapped, TInterface> v0 => v0,
+            ReadOnlyListWrapper<T, TWrapped, TInterface> o => o,
             _ => new ReadOnlyListWrapper<T, TWrapped, TInterface>(list)
         };
 

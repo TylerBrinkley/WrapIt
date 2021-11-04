@@ -9,15 +9,15 @@ namespace WrapIt.Collections
         public static ReadOnlyCollectionWrapper<T, TWrapped, TInterface>? Create(IReadOnlyCollection<T>? collection) => collection switch
         {
             null => null,
-            IReadOnlyList<T> v0 => ReadOnlyListWrapper<T, TWrapped, TInterface>.Create(v0),
+            IReadOnlyList<T> o => ReadOnlyListWrapper<T, TWrapped, TInterface>.Create(o),
             _ => new ReadOnlyCollectionWrapper<T, TWrapped, TInterface>(collection)
         };
 
         public static ReadOnlyCollectionWrapper<T, TWrapped, TInterface>? Create(IReadOnlyCollection<TInterface>? collection) => collection switch
         {
             null => null,
-            ReadOnlyCollectionWrapper<T, TWrapped, TInterface> v0 => v0,
-            IReadOnlyList<TInterface> v1 => ReadOnlyListWrapper<T, TWrapped, TInterface>.Create(v1),
+            ReadOnlyCollectionWrapper<T, TWrapped, TInterface> o => o,
+            IReadOnlyList<TInterface> o => ReadOnlyListWrapper<T, TWrapped, TInterface>.Create(o),
             _ => new ReadOnlyCollectionWrapper<T, TWrapped, TInterface>(collection)
         };
 

@@ -10,17 +10,17 @@ namespace WrapIt.Collections
         public static EnumerableWrapper<T, TWrapped, TInterface>? Create(IEnumerable<T>? enumerable) => enumerable switch
         {
             null => null,
-            ICollection<T> v0 => CollectionWrapper<T, TWrapped, TInterface>.Create(v0),
-            IReadOnlyCollection<T> v1 => ReadOnlyCollectionWrapper<T, TWrapped, TInterface>.Create(v1),
+            ICollection<T> o => CollectionWrapper<T, TWrapped, TInterface>.Create(o),
+            IReadOnlyCollection<T> o => ReadOnlyCollectionWrapper<T, TWrapped, TInterface>.Create(o),
             _ => new EnumerableWrapper<T, TWrapped, TInterface>(enumerable)
         };
 
         public static EnumerableWrapper<T, TWrapped, TInterface>? Create(IEnumerable<TInterface>? enumerable) => enumerable switch
         {
             null => null,
-            EnumerableWrapper<T, TWrapped, TInterface> v0 => v0,
-            ICollection<TInterface> v1 => CollectionWrapper<T, TWrapped, TInterface>.Create(v1),
-            IReadOnlyCollection<TInterface> v2 => ReadOnlyCollectionWrapper<T, TWrapped, TInterface>.Create(v2),
+            EnumerableWrapper<T, TWrapped, TInterface> o => o,
+            ICollection<TInterface> o => CollectionWrapper<T, TWrapped, TInterface>.Create(o),
+            IReadOnlyCollection<TInterface> o => ReadOnlyCollectionWrapper<T, TWrapped, TInterface>.Create(o),
             _ => new EnumerableWrapper<T, TWrapped, TInterface>(enumerable)
         };
 
@@ -57,6 +57,7 @@ namespace WrapIt.Collections
 
         internal interface IEnumerableWrapperInternal : IEnumerable<TWrapped>
         {
+            object UnderlyingCollection { get; }
             IEnumerable<T> ToEnumerable();
         }
 
@@ -64,6 +65,8 @@ namespace WrapIt.Collections
             where TCollection : IEnumerable<T>
         {
             protected readonly TCollection Collection;
+
+            object IEnumerableWrapperInternal.UnderlyingCollection => Collection;
 
             public StandardEnumerableWrapperInternal(TCollection enumerable)
             {
@@ -87,6 +90,8 @@ namespace WrapIt.Collections
             where TCollection : IEnumerable<TInterface>
         {
             protected readonly TCollection Collection;
+
+            object IEnumerableWrapperInternal.UnderlyingCollection => Collection;
 
             public CastedEnumerableWrapperInternal(TCollection collection)
             {

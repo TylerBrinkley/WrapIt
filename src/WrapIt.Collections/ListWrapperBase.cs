@@ -1,8 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 
 namespace WrapIt.Collections
 {
-    public abstract class ListWrapperBase<T, TWrapped, TInterface> : CollectionWrapper<T, TWrapped, TInterface>, IList<TInterface>, IReadOnlyList<TInterface>
+    public abstract class ListWrapperBase<T, TWrapped, TInterface> : CollectionWrapper<T, TWrapped, TInterface>, IList<TInterface>, IReadOnlyList<TInterface>, IList
         where TWrapped : TInterface
     {
         internal new IListWrapperBaseInternal InternalWrapper => (IListWrapperBaseInternal)base.InternalWrapper;
@@ -12,6 +13,12 @@ namespace WrapIt.Collections
         TInterface IList<TInterface>.this[int index] { get => this[index]; set => this[index] = (TWrapped)value!; }
 
         TInterface IReadOnlyList<TInterface>.this[int index] => this[index];
+
+        bool IList.IsReadOnly => InternalWrapper.IsReadOnly;
+
+        bool IList.IsFixedSize => InternalWrapper.UnderlyingCollection is IList c && c.IsFixedSize;
+
+        object? IList.this[int index] { get => this[index]; set => this[index] = (TWrapped)value!; }
 
         internal ListWrapperBase(IListWrapperBaseInternal internalWrapper)
             : base(internalWrapper)
@@ -25,6 +32,24 @@ namespace WrapIt.Collections
         void IList<TInterface>.Insert(int index, TInterface item) => InternalWrapper.Insert(index, (TWrapped)item!);
 
         void IList<TInterface>.RemoveAt(int index) => InternalWrapper.RemoveAt(index);
+
+        int IList.Add(object value)
+        {
+            ((ICollection<TInterface>)this).Add((TInterface)value);
+            return Count;
+        }
+
+        bool IList.Contains(object value) => Contains((TWrapped)value);
+
+        void IList.Clear() => InternalWrapper.Clear();
+
+        int IList.IndexOf(object value) => IndexOf((TWrapped)value);
+
+        void IList.Insert(int index, object value) => InternalWrapper.Insert(index, (TWrapped)value);
+
+        void IList.Remove(object value) => InternalWrapper.Remove((TWrapped)value);
+
+        void IList.RemoveAt(int index) => InternalWrapper.RemoveAt(index);
 
         internal interface IListWrapperBaseInternal : ICollectionWrapperInternal, IList<TWrapped>
         {

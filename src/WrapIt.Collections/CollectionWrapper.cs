@@ -1,27 +1,28 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace WrapIt.Collections
 {
-    public class CollectionWrapper<T, TWrapped, TInterface> : EnumerableWrapper<T, TWrapped, TInterface>, ICollection<TInterface>, IReadOnlyCollection<TInterface>
+    public class CollectionWrapper<T, TWrapped, TInterface> : EnumerableWrapper<T, TWrapped, TInterface>, ICollection<TInterface>, IReadOnlyCollection<TInterface>, ICollection
         where TWrapped : TInterface
     {
         public static CollectionWrapper<T, TWrapped, TInterface>? Create(ICollection<T>? collection) => collection switch
         {
             null => null,
-            T[] v0 => ArrayWrapper<T, TWrapped, TInterface>.Create(v0),
-            IList<T> v1 => ListWrapper<T, TWrapped, TInterface>.Create(v1),
-            ISet<T> v2 => SetWrapper<T, TWrapped, TInterface>.Create(v2),
+            T[] o => ArrayWrapper<T, TWrapped, TInterface>.Create(o),
+            IList<T> o => ListWrapper<T, TWrapped, TInterface>.Create(o),
+            ISet<T> o => SetWrapper<T, TWrapped, TInterface>.Create(o),
             _ => new CollectionWrapper<T, TWrapped, TInterface>(collection)
         };
 
         public static CollectionWrapper<T, TWrapped, TInterface>? Create(ICollection<TInterface>? collection) => collection switch
         {
             null => null,
-            CollectionWrapper<T, TWrapped, TInterface> v0 => v0,
-            TInterface[] v1 => ArrayWrapper<T, TWrapped, TInterface>.Create(v1),
-            IList<TInterface> v2 => ListWrapper<T, TWrapped, TInterface>.Create(v2),
-            ISet<TInterface> v3 => SetWrapper<T, TWrapped, TInterface>.Create(v3),
+            CollectionWrapper<T, TWrapped, TInterface> o => o,
+            TInterface[] o => ArrayWrapper<T, TWrapped, TInterface>.Create(o),
+            IList<TInterface> o => ListWrapper<T, TWrapped, TInterface>.Create(o),
+            ISet<TInterface> o => SetWrapper<T, TWrapped, TInterface>.Create(o),
             _ => new CollectionWrapper<T, TWrapped, TInterface>(collection)
         };
 
@@ -30,6 +31,10 @@ namespace WrapIt.Collections
         public int Count => InternalWrapper.Count;
 
         bool ICollection<TInterface>.IsReadOnly => InternalWrapper.IsReadOnly;
+
+        object? ICollection.SyncRoot => InternalWrapper.UnderlyingCollection is ICollection c ? c.SyncRoot : null;
+
+        bool ICollection.IsSynchronized => InternalWrapper.UnderlyingCollection is ICollection c && c.IsSynchronized;
 
         public CollectionWrapper(ICollection<T> collection)
             : base(new StandardCollectionWrapperInternal<ICollection<T>>(collection ?? throw new ArgumentNullException(nameof(collection))))
@@ -54,7 +59,7 @@ namespace WrapIt.Collections
 
         void ICollection<TInterface>.CopyTo(TInterface[] array, int arrayIndex)
         {
-            if (arrayIndex + Count > array.Length)
+            if ((uint)arrayIndex + Count > array.Length)
             {
                 throw new ArgumentOutOfRangeException("arrayIndex + Count must be less than or equal to array.Length");
             }
@@ -71,6 +76,19 @@ namespace WrapIt.Collections
 
         bool ICollection<TInterface>.Remove(TInterface item) => InternalWrapper.Remove((TWrapped)item!);
 
+        void ICollection.CopyTo(Array array, int index)
+        {
+            if ((uint)index + Count > array.Length)
+            {
+                throw new ArgumentOutOfRangeException("index + Count must be less than or equal to array.Length");
+            }
+
+            foreach (var item in this)
+            {
+                array.SetValue(item, index++);
+            }
+        }
+
         internal interface ICollectionWrapperInternal : IEnumerableWrapperInternal, ICollection<TWrapped>
         {
             ICollection<T> ToCollection();
@@ -82,6 +100,10 @@ namespace WrapIt.Collections
             public int Count => Collection.Count;
 
             public virtual bool IsReadOnly => Collection.IsReadOnly;
+
+            public object? SyncRoot => Collection is ICollection c ? c.SyncRoot : null;
+
+            public bool IsSynchronized => Collection is ICollection c && c.IsSynchronized;
 
             public StandardCollectionWrapperInternal(TCollection collection)
                 : base(collection)
@@ -107,6 +129,10 @@ namespace WrapIt.Collections
             public int Count => Collection.Count;
 
             public virtual bool IsReadOnly => Collection.IsReadOnly;
+
+            public object? SyncRoot => Collection is ICollection c ? c.SyncRoot : null;
+
+            public bool IsSynchronized => Collection is ICollection c && c.IsSynchronized;
 
             public CastedCollectionWrapperInternal(TCollection collection)
                 : base(collection)
