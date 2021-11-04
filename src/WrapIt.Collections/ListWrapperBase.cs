@@ -35,8 +35,8 @@ namespace WrapIt.Collections
 
         int IList.Add(object value)
         {
-            ((ICollection<TInterface>)this).Add((TInterface)value);
-            return Count;
+            InternalWrapper.Add((TWrapped)value);
+            return Count - 1;
         }
 
         bool IList.Contains(object value) => Contains((TWrapped)value);

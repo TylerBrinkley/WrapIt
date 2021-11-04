@@ -126,7 +126,7 @@ namespace WrapIt.Collections
 
         void IDictionary.Add(object key, object value) => Add((TKey)key, (TValueWrapped)value);
 
-        IDictionaryEnumerator IDictionary.GetEnumerator() => throw new NotSupportedException();
+        IDictionaryEnumerator IDictionary.GetEnumerator() => (IDictionaryEnumerator)InternalWrapper.GetEnumerator();
 
         void IDictionary.Remove(object key) => Remove((TKey)key);
 
@@ -190,15 +190,35 @@ namespace WrapIt.Collections
 
             public bool Remove(KeyValuePair<TKey, TValueWrapped> item) => throw new NotSupportedException();
 
-            public IEnumerator<KeyValuePair<TKey, TValueWrapped>> GetEnumerator()
-            {
-                foreach (var pair in _dictionary)
-                {
-                    yield return new KeyValuePair<TKey, TValueWrapped>(pair.Key, Conversion<TValue, TValueWrapped>.Wrap(pair.Value));
-                }
-            }
+            public IEnumerator<KeyValuePair<TKey, TValueWrapped>> GetEnumerator() => new Enumerator(_dictionary.GetEnumerator());
 
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+            private sealed class Enumerator : IEnumerator<KeyValuePair<TKey, TValueWrapped>>, IDictionaryEnumerator
+            {
+                private readonly IEnumerator<KeyValuePair<TKey, TValue>> _enumerator;
+
+                public Enumerator(IEnumerator<KeyValuePair<TKey, TValue>> enumerator)
+                {
+                    _enumerator = enumerator;
+                }
+
+                public KeyValuePair<TKey, TValueWrapped> Current => new KeyValuePair<TKey, TValueWrapped>(_enumerator.Current.Key, Conversion<TValue, TValueWrapped>.Wrap(_enumerator.Current.Value));
+
+                public object Key => Current.Key;
+
+                public object? Value => Current.Value;
+
+                public DictionaryEntry Entry => new DictionaryEntry(Key, Value);
+
+                object IEnumerator.Current => Current;
+
+                public void Dispose() => _enumerator.Dispose();
+
+                public bool MoveNext() => _enumerator.MoveNext();
+
+                public void Reset() => _enumerator.Reset();
+            }
         }
 
         private sealed class CastedDictionaryWrapper : IDictionaryWrapperInternal
@@ -259,15 +279,35 @@ namespace WrapIt.Collections
 
             public bool Remove(KeyValuePair<TKey, TValueWrapped> item) => throw new NotSupportedException();
 
-            public IEnumerator<KeyValuePair<TKey, TValueWrapped>> GetEnumerator()
-            {
-                foreach (var item in _dictionary)
-                {
-                    yield return new KeyValuePair<TKey, TValueWrapped>(item.Key, (TValueWrapped)item.Value!);
-                }
-            }
+            public IEnumerator<KeyValuePair<TKey, TValueWrapped>> GetEnumerator() => new Enumerator(_dictionary.GetEnumerator());
 
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+            private sealed class Enumerator : IEnumerator<KeyValuePair<TKey, TValueWrapped>>, IDictionaryEnumerator
+            {
+                private readonly IEnumerator<KeyValuePair<TKey, TValueInterface>> _enumerator;
+
+                public Enumerator(IEnumerator<KeyValuePair<TKey, TValueInterface>> enumerator)
+                {
+                    _enumerator = enumerator;
+                }
+
+                public KeyValuePair<TKey, TValueWrapped> Current => new KeyValuePair<TKey, TValueWrapped>(_enumerator.Current.Key, (TValueWrapped)_enumerator.Current.Value!);
+
+                public object Key => Current.Key;
+
+                public object? Value => Current.Value;
+
+                public DictionaryEntry Entry => new DictionaryEntry(Key, Value);
+
+                object IEnumerator.Current => Current;
+
+                public void Dispose() => _enumerator.Dispose();
+
+                public bool MoveNext() => _enumerator.MoveNext();
+
+                public void Reset() => _enumerator.Reset();
+            }
         }
     }
 }
