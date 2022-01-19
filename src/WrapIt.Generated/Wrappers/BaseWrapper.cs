@@ -55,6 +55,11 @@ namespace Wrappers
             Object = @object ?? throw new ArgumentNullException(nameof(@object));
         }
 
+        public BaseWrapper()
+            : this(new Company.Base())
+        {
+        }
+
         public void DoStuff(OtherWrapper other) => Object.DoStuff(other);
 
         void IBase.DoStuff(IOther other) => DoStuff((OtherWrapper)other);

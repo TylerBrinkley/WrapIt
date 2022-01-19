@@ -45,6 +45,8 @@ namespace WrapIt
 
         public Func<Type, EventInfo, MemberGeneration>? EventResolver { get; set; }
 
+        public Func<Type, ConstructorInfo, MemberGeneration>? ConstructorResolver { get; set; }
+
         public Func<Type, Type, bool>? InterfaceResolver { get; set; }
 
         public Func<Type, TypeGeneration>? TypeResolver { get; set; }

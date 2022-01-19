@@ -52,6 +52,11 @@ namespace Wrappers
             Object = @object ?? throw new ArgumentNullException(nameof(@object));
         }
 
+        public MyCollectionWrapper()
+            : this(new Company.MyCollection())
+        {
+        }
+
         /// <summary>
         /// Adds a name to the collection.
         /// </summary>

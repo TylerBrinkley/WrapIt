@@ -38,6 +38,11 @@ namespace Wrappers.OtherNamespace
             Object = @object ?? throw new ArgumentNullException(nameof(@object));
         }
 
+        public FieldChangeEventArgsWrapper()
+            : this(new Company.OtherNamespace.FieldChangeEventArgs())
+        {
+        }
+
         /// <inheritdoc/>
         public override bool Equals(object obj) => Object.Equals(obj is FieldChangeEventArgsWrapper o ? o.Object : obj);
 

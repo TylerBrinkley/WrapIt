@@ -32,6 +32,11 @@ namespace Wrappers.Base
             Object = @object ?? throw new ArgumentNullException(nameof(@object));
         }
 
+        public NestedWrapper()
+            : this(new Company.Base.Nested())
+        {
+        }
+
         /// <inheritdoc/>
         public override bool Equals(object obj) => Object.Equals(obj is NestedWrapper o ? o.Object : obj);
 

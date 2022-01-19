@@ -63,6 +63,15 @@ namespace Wrappers
         {
         }
 
+        /// <summary>
+        /// Explicit constructor.
+        /// </summary>
+        /// <param name="names">The names.</param>
+        public DerivedWrapper(List<string> names)
+            : this(new Company.Derived(names))
+        {
+        }
+
         int IComparable.CompareTo(object obj) => ((IComparable)Object).CompareTo(obj is DerivedWrapper o ? o.Object : obj);
     }
 }

@@ -20,6 +20,8 @@ namespace WrapIt
 
         public bool IsValueType { get; }
 
+        public List<ConstructorData> Constructors { get; } = new List<ConstructorData>();
+
         public ClassData(Type type, TypeName className, TypeName interfaceName, TypeBuildStatus buildStatus, ClassData? baseType, TypeGeneration typeGeneration)
             : base(type, className, interfaceName, buildStatus)
         {
@@ -150,6 +152,65 @@ namespace WrapIt
                 if (dependentType.BuildStatus == TypeBuildStatus.NotYetBuilt)
                 {
                     await dependentType.BuildAsync(builder, typeDatas, writerProvider, documentationProvider, cancellationToken).ConfigureAwait(false);
+                }
+            }
+        }
+
+        public override void Initialize(WrapperBuilder builder, DocumentationProvider? documentationProvider, HashSet<TypeData> typeDatas, BindingFlags bindingFlags)
+        {
+            if (!_initialized)
+            {
+                base.Initialize(builder, documentationProvider, typeDatas, bindingFlags);
+
+                if (!Type.IsAbstract)
+                {
+                    var constructorInfos = Type.GetConstructors();
+                    foreach (var constructor in constructorInfos)
+                    {
+                        var generation = builder.ConstructorResolver?.Invoke(Type, constructor) ?? MemberGeneration.Full;
+                        if (generation != MemberGeneration.None)
+                        {
+                            var parameterInfos = constructor.GetParameters();
+                            var parameters = new List<ParameterData>();
+                            if (parameterInfos?.Length > 0)
+                            {
+                                InterfaceData? genericIEnumerable = null;
+                                if (parameterInfos.Length == 1 && typeof(IEnumerable).IsAssignableFrom(parameterInfos[0].ParameterType) && !parameterInfos[0].ParameterType.IsGenericType && (genericIEnumerable = Interfaces.FirstOrDefault(i => i.Type.IsGenericType && i.Type.GetGenericTypeDefinition() == typeof(IEnumerable<>))) != null)
+                                {
+                                    var parameter = parameterInfos[0];
+                                    var parameterTypeData = builder.GetTypeData((parameter.ParameterType == typeof(ICollection) || parameter.ParameterType == typeof(IList) ? typeof(List<>) : typeof(IEnumerable<>)).MakeGenericType(genericIEnumerable.Type.GenericTypeArguments[0]), typeDatas);
+                                    ClassDependentTypes.UnionWith(parameterTypeData.GetPublicTypes());
+                                    parameters.Add(new ParameterData(parameterTypeData, parameter.Name, parameter.IsOut, parameter.GetCustomAttribute<ParamArrayAttribute>() != null));
+                                }
+                                else
+                                {
+                                    foreach (var parameter in parameterInfos)
+                                    {
+                                        var parameterTypeData = builder.GetTypeData(parameter.ParameterType, typeDatas);
+                                        ClassDependentTypes.UnionWith(parameterTypeData.GetPublicTypes());
+                                        parameters.Add(new ParameterData(parameterTypeData, parameter.Name, parameter.IsOut, parameter.GetCustomAttribute<ParamArrayAttribute>() != null));
+                                    }
+                                }
+                            }
+
+                            var constructorData = new ConstructorData(parameters);
+                            if (documentationProvider != null)
+                            {
+                                constructorData.Documentation = documentationProvider.GetDocumentation(constructor);
+                            }
+                            var obsoleteAttribute = constructor.GetCustomAttribute<ObsoleteAttribute>();
+                            if (obsoleteAttribute != null)
+                            {
+                                constructorData.ObsoleteMessage = obsoleteAttribute.Message?.Replace("\"", "\\\"") ?? string.Empty;
+                            }
+                            Constructors.Add(constructorData);
+                        }
+                    }
+
+                    if (IsValueType && !Constructors.Any(c => c.Parameters.Count == 0))
+                    {
+                        Constructors.Add(new ConstructorData(new List<ParameterData>()));
+                    }
                 }
             }
         }
@@ -833,7 +894,7 @@ namespace WrapIt
 
                 // TODO: Add explicit interface implementation support for events
 
-                if (IsValueType || !TypeGeneration.HasFlag(TypeGeneration.Instance))
+                if (!TypeGeneration.HasFlag(TypeGeneration.Instance))
                 {
                     if (builder.DocumentationGeneration != DocumentationGeneration.None)
                     {
@@ -844,10 +905,6 @@ namespace WrapIt
                     await writer.WriteLineAsync($"        public {ClassName}()").ConfigureAwait(false);
                     await writer.WriteLineAsync("        {").ConfigureAwait(false);
                     await writer.WriteLineAsync("        }").ConfigureAwait(false);
-                    if (IsValueType)
-                    {
-                        await writer.WriteLineAsync().ConfigureAwait(false);
-                    }
                 }
                 if (TypeGeneration.HasFlag(TypeGeneration.Instance))
                 {
@@ -885,6 +942,44 @@ namespace WrapIt
                             await writer.WriteLineAsync($"            {ObjectName} = {ObjectParamName};").ConfigureAwait(false);
                         }
                         await writer.WriteLineAsync("        }").ConfigureAwait(false);
+                    }
+                }
+
+                foreach (var constructor in Constructors)
+                {
+                    if (constructor.Generation == MemberGeneration.FullWithSafeCaching)
+                    {
+                        throw new NotSupportedException("Caching is not supported for constructors.");
+                    }
+                    if (constructor.Generation == MemberGeneration.WrapEventHandlerInCompilerFlag)
+                    {
+                        throw new NotSupportedException("WrapEventHandlerInCompilerFlag is not supported for constructors.");
+                    }
+                    if (constructor.Generation == MemberGeneration.OnlyInInterface)
+                    {
+                        throw new NotSupportedException("OnlyInInterface is not supported for constructors.");
+                    }
+                    await writer.WriteLineAsync().ConfigureAwait(false);
+                    var wrapInCompilerFlag = constructor.Generation == MemberGeneration.WrapImplementationInCompilerFlag;
+                    if (wrapInCompilerFlag)
+                    {
+                        await writer.WriteLineAsync($"#if {builder.DefaultMemberGenerationCompilerFlag}").ConfigureAwait(false);
+                    }
+                    if (constructor.Documentation.Any())
+                    {
+                        await writer.WriteLineAsync(string.Join(writer.NewLine, constructor.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
+                    }
+                    if (constructor.ObsoleteMessage != null)
+                    {
+                        await writer.WriteLineAsync($"        [Obsolete{(constructor.ObsoleteMessage.Length > 0 ? $"(\"{constructor.ObsoleteMessage}\")" : string.Empty)}]");
+                    }
+                    await writer.WriteLineAsync($"        public {ClassName}({string.Join(", ", constructor.Parameters.Select(p => p.GetAsClassParameter()))})").ConfigureAwait(false);
+                    await writer.WriteLineAsync($"            : this(new {typeFullName}({string.Join(", ", constructor.Parameters.Select(p => p.GetCodeToConvertToActualType()))}))").ConfigureAwait(false);
+                    await writer.WriteLineAsync("        {").ConfigureAwait(false);
+                    await writer.WriteLineAsync("        }").ConfigureAwait(false);
+                    if (wrapInCompilerFlag)
+                    {
+                        await writer.WriteLineAsync("#endif").ConfigureAwait(false);
                     }
                 }
 

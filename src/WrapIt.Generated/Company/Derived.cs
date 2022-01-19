@@ -24,6 +24,15 @@ namespace Company
 
         public Point Point { get; set; }
 
+        /// <summary>
+        /// Explicit constructor.
+        /// </summary>
+        /// <param name="names">The names.</param>
+        public Derived(List<string> names)
+        {
+            Names = names;
+        }
+
         public override void DoStuff(Other other)
         {
         }

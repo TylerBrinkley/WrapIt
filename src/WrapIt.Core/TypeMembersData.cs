@@ -9,7 +9,7 @@ namespace WrapIt
 {
     internal abstract class TypeMembersData : TypeData
     {
-        private bool _initialized;
+        protected bool _initialized;
 
         public IEnumerable<InterfaceData> Interfaces => ImplicitInterfaces.Concat(ExplicitInterfaces);
 
@@ -46,7 +46,7 @@ namespace WrapIt
 
         internal virtual Type[] GetInterfaces() => Type.GetInterfaces();
 
-        public void Initialize(WrapperBuilder builder, DocumentationProvider? documentationProvider, HashSet<TypeData> typeDatas, BindingFlags bindingFlags)
+        public virtual void Initialize(WrapperBuilder builder, DocumentationProvider? documentationProvider, HashSet<TypeData> typeDatas, BindingFlags bindingFlags)
         {
             if (_initialized)
             {

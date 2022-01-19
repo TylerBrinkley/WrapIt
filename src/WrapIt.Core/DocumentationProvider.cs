@@ -21,11 +21,20 @@ namespace WrapIt
 
         public IEnumerable<XElement> GetDocumentation(MethodInfo method)
         {
-            var methodName = method.Name;
             var type = method.DeclaringType;
             var members = GetMembersElement(type.Assembly);
             var parameters = method.GetParameters();
             var name = $"M:{(type.IsGenericType ? type.GetGenericTypeDefinition() : type).FullName}.{method.Name}{(parameters.Length > 0 ? $"({string.Join(",", parameters.Select(p => p.ParameterType.IsGenericType ? $"{p.ParameterType.FullName.Substring(0, p.ParameterType.FullName.IndexOf('`'))}{{{string.Join(",", p.ParameterType.GetGenericArguments().Select(a => a.FullName))}}}" : (p.ParameterType.IsByRef ? $"{p.ParameterType.GetElementType().FullName}@" : p.ParameterType.FullName)))})" : string.Empty)}";
+            var member = members.FirstOrDefault(m => m.Attribute("name").Value == name);
+            return member?.Elements() ?? Enumerable.Empty<XElement>();
+        }
+
+        public IEnumerable<XElement> GetDocumentation(ConstructorInfo constructor)
+        {
+            var type = constructor.DeclaringType;
+            var members = GetMembersElement(type.Assembly);
+            var parameters = constructor.GetParameters();
+            var name = $"M:{(type.IsGenericType ? type.GetGenericTypeDefinition() : type).FullName}.#ctor{(parameters.Length > 0 ? $"({string.Join(",", parameters.Select(p => p.ParameterType.IsGenericType ? $"{p.ParameterType.FullName.Substring(0, p.ParameterType.FullName.IndexOf('`'))}{{{string.Join(",", p.ParameterType.GetGenericArguments().Select(a => a.FullName))}}}" : (p.ParameterType.IsByRef ? $"{p.ParameterType.GetElementType().FullName}@" : p.ParameterType.FullName)))})" : string.Empty)}";
             var member = members.FirstOrDefault(m => m.Attribute("name").Value == name);
             return member?.Elements() ?? Enumerable.Empty<XElement>();
         }

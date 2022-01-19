@@ -89,6 +89,11 @@ namespace Wrappers.OtherNamespace
             Object = @object ?? throw new ArgumentNullException(nameof(@object));
         }
 
+        public OtherWrapper()
+            : this(new Company.OtherNamespace.Other())
+        {
+        }
+
         /// <inheritdoc/>
         public override bool Equals(object obj) => Object.Equals(obj is OtherWrapper o ? o.Object : obj);
 

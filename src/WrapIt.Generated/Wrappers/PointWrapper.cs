@@ -26,17 +26,15 @@
         /// <summary>
         /// The wrapper constructor.
         /// </summary>
-        public PointWrapper()
-        {
-        }
-
-        /// <summary>
-        /// The wrapper constructor.
-        /// </summary>
         /// <param name="object">The object to wrap.</param>
         public PointWrapper(Company.Point @object)
         {
             Object = @object;
+        }
+
+        public PointWrapper()
+            : this(new Company.Point())
+        {
         }
 
         /// <inheritdoc/>
