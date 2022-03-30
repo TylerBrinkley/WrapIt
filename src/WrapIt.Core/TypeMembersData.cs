@@ -432,6 +432,11 @@ namespace WrapIt
                 {
                     Methods.RemoveAt(i);
                 }
+                if (method.Name == "Remove" && method.ReturnType.Type == typeof(void) && method.Parameters.Count == 1 && ImplicitInterfaces.Any(i => i.Type.IsGenericType && i.Type.GetGenericTypeDefinition() == typeof(IList<>) && method.Parameters[0].Type.Type == i.Type.GenericTypeArguments[0]))
+                {
+                    // Don't add `void Remove(T item)` when `IList<T>` is implemented which has `bool Remove(T item)`
+                    method.Generation = MemberGeneration.OnlyInImplementation;
+                }
             }
         }
 

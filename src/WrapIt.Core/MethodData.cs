@@ -15,7 +15,7 @@ namespace WrapIt
 
         public bool OverrideObject { get; }
 
-        public MemberGeneration Generation { get; }
+        public MemberGeneration Generation { get; set; }
 
         public bool IsStatic { get; }
 

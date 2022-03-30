@@ -343,27 +343,20 @@ namespace WrapIt
                     {
                         if (method.DeclaringInterfaceType == null && method.Generation != MemberGeneration.OnlyInImplementation)
                         {
-                            if (method.Name == "Remove" && method.ReturnType.Type == typeof(void) && method.Parameters.Count == 1 && ImplicitInterfaces.Any(i => i.Type.IsGenericType && i.Type.GetGenericTypeDefinition() == typeof(IList<>) && method.Parameters[0].Type.Type == i.Type.GenericTypeArguments[0]))
+                            if (first && addLine)
                             {
-                                // Don't add `void Remove(T item)` when `IList<T>` is implemented which has `bool Remove(T item)`
+                                await writer.WriteLineAsync().ConfigureAwait(false);
                             }
-                            else
+                            first = false;
+                            if (method.Documentation.Any())
                             {
-                                if (first && addLine)
-                                {
-                                    await writer.WriteLineAsync().ConfigureAwait(false);
-                                }
-                                first = false;
-                                if (method.Documentation.Any())
-                                {
-                                    await writer.WriteLineAsync(string.Join(writer.NewLine, method.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
-                                }
-                                if (method.ObsoleteMessage != null)
-                                {
-                                    await writer.WriteLineAsync($"        [Obsolete{(method.ObsoleteMessage.Length > 0 ? $"(\"{method.ObsoleteMessage}\")" : string.Empty)}]");
-                                }
-                                await writer.WriteLineAsync($"        {(BaseType?.HasMethod(m => m.Equals(method, checkReturnType: false)) == true ? "new " : string.Empty)}{method.ReturnType.InterfaceName} {method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetAsInterfaceParameter()))});").ConfigureAwait(false);
+                                await writer.WriteLineAsync(string.Join(writer.NewLine, method.Documentation.SelectMany(d => d.ToString().Split(new[] { Environment.NewLine }, StringSplitOptions.None)).Select(d => $"        /// {(d.StartsWith("            ") ? d.Substring(12) : d)}"))).ConfigureAwait(false);
                             }
+                            if (method.ObsoleteMessage != null)
+                            {
+                                await writer.WriteLineAsync($"        [Obsolete{(method.ObsoleteMessage.Length > 0 ? $"(\"{method.ObsoleteMessage}\")" : string.Empty)}]");
+                            }
+                            await writer.WriteLineAsync($"        {(BaseType?.HasMethod(m => m.Equals(method, checkReturnType: false)) == true ? "new " : string.Empty)}{method.ReturnType.InterfaceName} {method.Name}({string.Join(", ", method.Parameters.Select(p => p.GetAsInterfaceParameter()))});").ConfigureAwait(false);
                         }
                     }
                 }
@@ -1004,7 +997,7 @@ namespace WrapIt
                         var hasExplicitInterfaceImplementation = method.Generation != MemberGeneration.OnlyInImplementation && (method.ReturnType.ClassName != method.ReturnType.InterfaceName || method.Parameters.Any(p => p.Type.ClassName != p.Type.InterfaceName));
                         if (method.Documentation.Any())
                         {
-                            if (builder.DocumentationGeneration == DocumentationGeneration.GenerateWithInheritDoc && !hasExplicitInterfaceImplementation)
+                            if (builder.DocumentationGeneration == DocumentationGeneration.GenerateWithInheritDoc && !hasExplicitInterfaceImplementation && method.Generation != MemberGeneration.OnlyInImplementation)
                             {
                                 await writer.WriteLineAsync("        /// <inheritdoc/>").ConfigureAwait(false);
                             }
@@ -1078,10 +1071,6 @@ namespace WrapIt
                             {
                                 await writer.WriteLineAsync().ConfigureAwait(false);
                                 await writer.WriteLineAsync($"        {method.ReturnType.InterfaceName} {method.DeclaringInterfaceType?.InterfaceName ?? InterfaceName}.GetEnumerator() => GetEnumerator();").ConfigureAwait(false);
-                            }
-                            else if (method.Name == "Remove" && method.ReturnType.Type == typeof(void) && method.Parameters.Count == 1 && ImplicitInterfaces.Any(i => i.Type.IsGenericType && i.Type.GetGenericTypeDefinition() == typeof(IList<>) && method.Parameters[0].Type.Type == i.Type.GenericTypeArguments[0]))
-                            {
-                                // Don't add `void Remove(T item)` explicit interface imiplementation when `IList<T>` is implemented which has `bool Remove(T item)`
                             }
                             else
                             {
