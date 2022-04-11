@@ -22,7 +22,8 @@ namespace WrapIt.Tests
             {
                 ClassFullNameFormat = (ns, nm) => $"Wrappers{ns.Substring("Company".Length)}.{nm}Wrapper",
                 DelegateFullNameFormat = (ns, nm) => $"Wrappers{ns.Substring("Company".Length)}.{nm}Wrapper",
-                InterfaceFullNameFormat = (ns, nm) => $"Wrappers{ns.Substring("Company".Length)}.I{nm}"
+                InterfaceFullNameFormat = (ns, nm) => $"Wrappers{ns.Substring("Company".Length)}.I{nm}",
+                DocumentationGeneration = DocumentationGeneration.GenerateWithInheritDoc
             };
             builder.RootTypes.Add(typeof(Derived));
             builder.PropertyResolver += (type, propertyInfo) =>

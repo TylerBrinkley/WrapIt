@@ -34,7 +34,9 @@ namespace WrapIt
             }
         }
 
-        public override string ToString() => UseFullName ? FullName : Name;
+        public override string ToString() => ToString(inXmlComment: false);
+
+        public virtual string ToString(bool inXmlComment) => UseFullName ? FullName : Name;
 
         public static bool operator ==(TypeName? left, TypeName? right) => left is null ? right is null : left.Equals(right);
 
@@ -69,7 +71,7 @@ namespace WrapIt
             return namespaces;
         }
 
-        public override string ToString() => UseFullName ? FullName : $"{Name}<{string.Join(", ", GenericTypeArguments)}>";
+        public override string ToString(bool inXmlComment) => UseFullName ? FullName : (inXmlComment ? $"{Name}{{{string.Join(", ", GenericTypeArguments.Select(a => a.ToString(inXmlComment)))}}}" : $"{Name}<{string.Join(", ", GenericTypeArguments)}>");
     }
 
     internal sealed class NullableTypeName : TypeName
@@ -86,7 +88,7 @@ namespace WrapIt
 
         public override IEnumerable<string> GetNamespaces() => NonNullableTypeName.GetNamespaces();
 
-        public override string ToString() => UseFullName ? FullName : $"{NonNullableTypeName}?";
+        public override string ToString(bool inXmlComment) => UseFullName ? FullName : $"{NonNullableTypeName.ToString(inXmlComment)}?";
     }
 
     internal sealed class RefTypeName : TypeName
@@ -103,7 +105,7 @@ namespace WrapIt
 
         public override IEnumerable<string> GetNamespaces() => NonRefTypeName.GetNamespaces();
 
-        public override string ToString() => UseFullName ? FullName : NonRefTypeName.ToString();
+        public override string ToString(bool inXmlComment) => UseFullName ? FullName : NonRefTypeName.ToString(inXmlComment);
     }
 
     internal sealed class ArrayTypeName : TypeName
@@ -120,6 +122,6 @@ namespace WrapIt
 
         public override IEnumerable<string> GetNamespaces() => ElementTypeName.GetNamespaces();
 
-        public override string ToString() => UseFullName ? FullName : $"{ElementTypeName}[]";
+        public override string ToString(bool inXmlComment) => UseFullName ? FullName : $"{ElementTypeName.ToString(inXmlComment)}[]";
     }
 }

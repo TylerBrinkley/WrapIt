@@ -4,6 +4,7 @@
     {
         None = 0,
         GenerateWithInheritDoc = 1,
-        GenerateWithoutInheritDoc = 2
+        GenerateWithoutInheritDoc = 2,
+        GenerateWithInheritDocWithReferencesToWrapped = 3
     }
 }

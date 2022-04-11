@@ -269,6 +269,10 @@ namespace WrapIt
                             break;
                         }
                     }
+                    var getEnumerator = new MethodData("GetEnumerator", builder.GetTypeData(typeof(IEnumerator<>).MakeGenericType(genericArg.Type), typeDatas), new List<ParameterData>(), false, MemberGeneration.Full, false);
+                    getEnumerator.DeclaringInterfaceType = interfaceTypeData;
+                    getEnumerator.Documentation = interfaceTypeData.Methods[0].Documentation;
+                    Methods.Add(getEnumerator);
 
                     var iCollectionInterface = ExplicitInterfaces.FirstOrDefault(i => i.Type == typeof(ICollection));
                     var iListInterface = ExplicitInterfaces.FirstOrDefault(i => i.Type == typeof(IList));

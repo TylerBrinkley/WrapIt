@@ -1,5 +1,6 @@
 ﻿namespace Wrappers
 {
+    /// <inheritdoc cref="IPoint"/>
     public sealed partial class PointWrapper : IPoint
     {
         /// <summary>
@@ -19,8 +20,10 @@
         /// </summary>
         public Company.Point Object { get; set; }
 
+        /// <inheritdoc/>
         public int X { get => Object.X; set { var @object = Object; @object.X = value; Object = @object; } }
 
+        /// <inheritdoc/>
         public int Y { get => Object.Y; set { var @object = Object; @object.Y = value; Object = @object; } }
 
         /// <summary>

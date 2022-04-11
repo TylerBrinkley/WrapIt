@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 namespace Wrappers
 {
+    /// <inheritdoc cref="IMyCollection"/>
     public partial class MyCollectionWrapper : IMyCollection, IList, IReadOnlyList<IDerived>
     {
         /// <summary>
@@ -23,8 +24,10 @@ namespace Wrappers
         /// </summary>
         public Company.MyCollection Object { get; private set; }
 
+        /// <inheritdoc/>
         public int Count => Object.Count;
 
+        /// <inheritdoc cref="IReadOnlyList{IDerived}.this[int]"/>
         public DerivedWrapper this[int index] => Object[index];
 
         IDerived IReadOnlyList<IDerived>.this[int index] => this[index];
@@ -57,21 +60,29 @@ namespace Wrappers
         {
         }
 
-        /// <summary>
-        /// Adds a name to the collection.
-        /// </summary>
-        /// <param name="name">The name to add.</param>
-        /// <returns>An item of type <see cref="T:Company.Derived" /></returns>
+        /// <inheritdoc cref="IMyCollection.Add(string)"/>
         public DerivedWrapper Add(string name) => Object.Add(name);
 
         IDerived IMyCollection.Add(string name) => Add(name);
 
+        /// <inheritdoc cref="IMyCollection.Add(string, DateTime)"/>
         public DerivedWrapper Add(string name, DateTime value) => Object.Add(name, value);
 
         IDerived IMyCollection.Add(string name, DateTime value) => Add(name, value);
 
         /// <inheritdoc/>
         public override bool Equals(object obj) => Object.Equals(obj is MyCollectionWrapper o ? o.Object : obj);
+
+        /// <inheritdoc cref="IEnumerable{IDerived}.GetEnumerator()"/>
+        public IEnumerator<DerivedWrapper> GetEnumerator()
+        {
+            foreach (var item in Object)
+            {
+                yield return (Company.Derived)item;
+            }
+        }
+
+        IEnumerator<IDerived> IEnumerable<IDerived>.GetEnumerator() => GetEnumerator();
 
         /// <inheritdoc/>
         public override int GetHashCode() => Object.GetHashCode();
@@ -102,20 +113,6 @@ namespace Wrappers
         }
 
         IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<IDerived>)this).GetEnumerator();
-
-        /// <summary>
-        /// Returns an enumerator that iterates through the collection.
-        /// </summary>
-        /// <returns>An enumerator that can be used to iterate through the collection.</returns>
-        public IEnumerator<DerivedWrapper> GetEnumerator()
-        {
-            foreach (var item in Object)
-            {
-                yield return (Company.Derived)item;
-            }
-        }
-
-        IEnumerator<IDerived> IEnumerable<IDerived>.GetEnumerator() => GetEnumerator();
 
         int IList<IDerived>.IndexOf(IDerived item) => ((IList)Object).IndexOf(((DerivedWrapper)item).Object);
 

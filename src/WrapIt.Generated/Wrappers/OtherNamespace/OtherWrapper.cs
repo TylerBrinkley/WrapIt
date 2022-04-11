@@ -3,6 +3,7 @@ using System.Threading;
 
 namespace Wrappers.OtherNamespace
 {
+    /// <inheritdoc cref="IOther"/>
     public partial class OtherWrapper : IOther
     {
         /// <summary>
@@ -22,16 +23,21 @@ namespace Wrappers.OtherNamespace
         /// </summary>
         public Company.OtherNamespace.Other Object { get; private set; }
 
+        /// <inheritdoc/>
         public int? Count { get => Object.Count; set => Object.Count = value; }
 
+        /// <inheritdoc/>
         public DateTime? this[string name, int? index] { get => Object[name, index]; set => Object[name, index] = value; }
 
+        /// <inheritdoc cref="IOther.this[IBase]"/>
         public string this[BaseWrapper b] { set => Object[b] = value; }
 
         string IOther.this[IBase b] { set => this[(BaseWrapper)b] = value; }
 
+        /// <inheritdoc/>
         public string[] StringArray { get => Object.StringArray; set => Object.StringArray = value; }
 
+        /// <inheritdoc/>
         public event FieldChangeEventHandlerWrapper FieldChange
         {
             add
@@ -100,8 +106,10 @@ namespace Wrappers.OtherNamespace
         /// <inheritdoc/>
         public override int GetHashCode() => Object.GetHashCode();
 
+        /// <inheritdoc/>
         public void InvokeFieldChange() => Object.InvokeFieldChange();
 
+        /// <inheritdoc/>
         public void Open(params int[] indices) => Object.Open(indices);
     }
 }

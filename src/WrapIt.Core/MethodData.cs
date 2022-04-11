@@ -11,7 +11,7 @@ namespace WrapIt
 
         public TypeData ReturnType { get; }
 
-        public List<ParameterData> Parameters { get; } = new List<ParameterData>();
+        public List<ParameterData> Parameters { get; }
 
         public bool OverrideObject { get; }
 

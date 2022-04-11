@@ -47,6 +47,8 @@ namespace WrapIt
 
         public override string GetCodeToConvertToClassType(string parameterName) => ClassName != InterfaceName ? $"{ClassName}.Create({parameterName})" : base.GetCodeToConvertToClassType(parameterName);
 
+        public override string GetActualName(bool inXmlComment = false) => $"System.Collections.Generic.Dictionary{(inXmlComment ? "{" : "<")}{KeyType.GetActualName(inXmlComment)}, {ValueType.GetActualName(inXmlComment)}{(inXmlComment ? "}" : ">")}";
+
         public override IEnumerable<TypeData> GetPublicTypes() => base.GetPublicTypes().Concat(KeyType.GetPublicTypes()).Concat(ValueType.GetPublicTypes());
     }
 }

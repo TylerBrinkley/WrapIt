@@ -2,6 +2,7 @@
 
 namespace Wrappers.OtherNamespace
 {
+    /// <inheritdoc cref="IFieldChangeEventArgs"/>
     public partial class FieldChangeEventArgsWrapper : IFieldChangeEventArgs
     {
         /// <summary>
@@ -21,12 +22,16 @@ namespace Wrappers.OtherNamespace
         /// </summary>
         public Company.OtherNamespace.FieldChangeEventArgs Object { get; private set; }
 
+        /// <inheritdoc/>
         public int BorrowerPair => Object.BorrowerPair;
 
+        /// <inheritdoc/>
         public string FieldId => Object.FieldId;
 
+        /// <inheritdoc/>
         public string NewValue => Object.NewValue;
 
+        /// <inheritdoc/>
         public string PriorValue => Object.PriorValue;
 
         /// <summary>

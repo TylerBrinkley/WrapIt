@@ -34,8 +34,6 @@ namespace WrapIt
 
         public TypeName InterfaceName { get; }
 
-        public string ActualName => ClassName != InterfaceName ? Type.FullName : ClassName.ToString();
-
         public TypeBuildStatus BuildStatus { get; set; }
 
         public HashSet<TypeData> DependentTypes { get; }
@@ -85,6 +83,8 @@ namespace WrapIt
         public virtual string GetCodeToConvertFromActualType(string input) => input;
 
         public virtual string GetCodeToConvertFromActualTypeToInterface(string input) => ClassName != InterfaceName ? $"({ClassName}){input}" : input;
+
+        public virtual string GetActualName(bool inXmlComment = false) => ClassName != InterfaceName ? Type.FullName : ClassName.ToString(inXmlComment);
 
         public virtual IEnumerable<TypeData> GetPublicTypes()
         {

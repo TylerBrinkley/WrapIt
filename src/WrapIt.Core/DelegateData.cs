@@ -60,7 +60,11 @@ namespace WrapIt
 
                 await writer.WriteLineAsync($"namespace {@namespace}").ConfigureAwait(false);
                 await writer.WriteLineAsync("{").ConfigureAwait(false);
-                if (documentationProvider != null)
+                if (builder.DocumentationGeneration is DocumentationGeneration.GenerateWithInheritDocWithReferencesToWrapped)
+                {
+                    await writer.WriteLineAsync($"    /// <inheritdoc cref=\"{GetActualName(inXmlComment: true)}\"/>").ConfigureAwait(false);
+                }
+                else if (documentationProvider != null && builder.DocumentationGeneration == DocumentationGeneration.GenerateWithoutInheritDoc)
                 {
                     var documentation = documentationProvider.GetDocumentation(Type);
                     if (documentation.Any())

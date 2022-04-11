@@ -24,13 +24,17 @@ namespace WrapIt
 
         public string GetAsClassParameter() => $"{(Type.Type.IsByRef ? (IsOut ? "out " : "ref ") : (IsParamArray ? "params " : string.Empty))}{Type.ClassName} {Name}";
 
-        public string GetAsActualParameter() => $"{(Type.Type.IsByRef ? (IsOut ? "out " : "ref ") : (IsParamArray ? "params " : string.Empty))}{Type.ActualName} {Name}";
+        public string GetAsActualParameter() => $"{(Type.Type.IsByRef ? (IsOut ? "out " : "ref ") : (IsParamArray ? "params " : string.Empty))}{Type.GetActualName()} {Name}";
 
         public string GetAsArgument() => $"{(Type.Type.IsByRef ? (IsOut ? "out " : "ref ") : string.Empty)}{Name}";
 
         public string GetCodeToConvertToActualType() => $"{(Type.Type.IsByRef ? (IsOut ? "out " : "ref ") : string.Empty)}{Type.GetCodeToConvertToActualType(Name)}";
 
         public string GetCodeToConvertToClassType() => $"{(Type.Type.IsByRef ? (IsOut ? "out " : "ref ") : string.Empty)}{Type.GetCodeToConvertToClassType(Name)}";
+
+        public string GetAsXmlParameter() => $"{(Type.Type.IsByRef ? (IsOut ? "out " : "ref ") : string.Empty)}{Type.InterfaceName.ToString(inXmlComment: true)}";
+
+        public string GetAsActualXmlParameter() => $"{(Type.Type.IsByRef ? (IsOut ? "out " : "ref ") : string.Empty)}{Type.GetActualName(inXmlComment: true)}";
 
         public override int GetHashCode() => Name.GetHashCode() ^ Type.GetHashCode();
 

@@ -2,6 +2,7 @@
 
 namespace Wrappers.Base
 {
+    /// <inheritdoc cref="INested"/>
     public partial class NestedWrapper : INested
     {
         /// <summary>
@@ -21,6 +22,7 @@ namespace Wrappers.Base
         /// </summary>
         public Company.Base.Nested Object { get; private set; }
 
+        /// <inheritdoc/>
         public DateTimeKind Kind { get => Object.Kind; set => Object.Kind = value; }
 
         /// <summary>

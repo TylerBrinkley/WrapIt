@@ -47,6 +47,19 @@ namespace WrapIt
 
         public override string GetCodeToConvertFromActualTypeToInterface(string input) => $"{ClassName}.Create({input})";
 
+        public override string GetActualName(bool inXmlComment = false)
+        {
+            if (Type.IsArray)
+            {
+                return $"{ElementType.GetActualName(inXmlComment)}[]";
+            }
+            else if (Type.IsGenericType && Type.GetGenericTypeDefinition() == typeof(List<>))
+            {
+                return $"List{(inXmlComment ? "{" : "<")}{ElementType.GetActualName(inXmlComment)}{(inXmlComment ? "}" : ">")}";
+            }
+            return base.GetActualName(inXmlComment);
+        }
+
         public override IEnumerable<TypeData> GetPublicTypes() => base.GetPublicTypes().Concat(ElementType.GetPublicTypes());
     }
 }
