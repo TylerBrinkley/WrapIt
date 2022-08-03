@@ -2,6 +2,22 @@
 
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
+    <AssemblyVersion>1.2.0.0</AssemblyVersion>
+    <FileVersion>1.2.0</FileVersion>
+    <VersionPrefix>1.2.0</VersionPrefix>
+    <VersionSufix></VersionSufix>
+    <PackageVersion>1.2.0</PackageVersion>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Authors>Tyler Brinkley</Authors>
+    <Description>WrapIt.Core provides the logic for generating wrapper classes.</Description>
+    <Copyright>Copyright © Tyler Brinkley 2020</Copyright>
+    <Summary>WrapIt.Core provides the logic for generating wrapper classes.</Summary>
+    <NeutralLanguage>en-US</NeutralLanguage>
+    <PackageId>WrapIt.Core</PackageId>
+    <PackageTags>wrapper</PackageTags>
+    <PackageProjectUrl>https://github.com/TylerBrinkley/WrapIt</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PublishRepositoryUrl>True</PublishRepositoryUrl>
     <RootNamespace>WrapIt</RootNamespace>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
